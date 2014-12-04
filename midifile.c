@@ -246,17 +246,15 @@ int i;
 
 	if (!pMF)							return NULL;
 	
-	if (!bOverwriteIfExists)
-		{
-		if ((pMF->pFile = fopen(pFilename, "r")))
-			{
+	if (!bOverwriteIfExists) {
+    if (fopen_s(&pMF->pFile, pFilename, "r") == 0) {
 			fclose(pMF->pFile);
 			free(pMF);
 			return NULL;
 			}
 		}
 	
-	if ((pMF->pFile = fopen(pFilename, "wb+")))
+  if (fopen_s(&pMF->pFile, pFilename, "wb+") == 0)
 		{/*empty*/}
 	else
 		{
@@ -349,27 +347,25 @@ int			midiFileGetVersion(const MIDI_FILE *_pMF)
 
 MIDI_FILE  *midiFileOpen(const char *pFilename)
 {
-FILE *fp = fopen(pFilename, "rb");
-_MIDI_FILE *pMF = NULL;
-BYTE *ptr;
-BOOL bValidFile=FALSE;
-long size;
+  FILE *fp = NULL;
+  _MIDI_FILE *pMF = NULL;
+  BYTE *ptr;
+  BOOL bValidFile=FALSE;
+  long size;
 
-	if (fp)
-		{
-		if ((pMF = (_MIDI_FILE *)malloc(sizeof(_MIDI_FILE))))
-			{
+  fopen_s(&fp, pFilename, "rb");
+
+	if (fp) {
+		if ((pMF = (_MIDI_FILE *)malloc(sizeof(_MIDI_FILE)))) {
 			fseek(fp, 0L, SEEK_END);
 			size = ftell(fp);
-			if ((pMF->ptr = (BYTE *)malloc(size)))
-				{
+			if ((pMF->ptr = (BYTE *)malloc(size))) {
 				fseek(fp, 0L, SEEK_SET);
 				fread(pMF->ptr, sizeof(BYTE), size, fp);
 				/* Is this a valid MIDI file ? */
 				ptr = pMF->ptr;
 				if (*(ptr+0) == 'M' && *(ptr+1) == 'T' && 
-					*(ptr+2) == 'h' && *(ptr+3) == 'd')
-					{
+					*(ptr+2) == 'h' && *(ptr+3) == 'd') {
 					DWORD dwData;
 					WORD wData;
 					int i;
@@ -390,11 +386,10 @@ long size;
 					/*
 					**	 Get all tracks
 					*/
-					for(i=0;i<MAX_MIDI_TRACKS;++i)
-						{
+					for(i=0;i<MAX_MIDI_TRACKS;++i) {
 						pMF->Track[i].pos = 0;
 						pMF->Track[i].last_status = 0;
-						}
+					}
 					
 					for(i=0;i<pMF->Header.iNumTracks;++i)
 						{
@@ -773,7 +768,7 @@ int sz;
 		*ptr++ = msgMetaEvent;
 		*ptr++ = (BYTE)iType;
 		ptr = _midiWriteVarLen((BYTE *)ptr, sz);
-		strcpy((char *)ptr, pTxt);
+		strcpy_s((char *)ptr, sz, pTxt);
 		pMF->Track[iTrack].ptr = ptr+sz;
 		return TRUE;
 		}
