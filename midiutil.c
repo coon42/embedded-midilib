@@ -415,7 +415,7 @@ BOOL muGetInstrumentName(char *pName, int iInstr)
 {
 	if (iInstr < 0 || iInstr > 127)
 		return FALSE;
-	strcpy(pName, szPatchList[iInstr]);
+	strcpy_s(pName, sizeof(szPatchList), szPatchList[iInstr]);
 	return TRUE;
 }
 
@@ -423,7 +423,7 @@ BOOL muGetDrumName(char *pName, int iInstr)
 {
 	if (iInstr < 0 || iInstr > 127)
 		return FALSE;
-	strcpy(pName, szGMDrums[iInstr]);
+	strcpy_s(pName, sizeof(szGMDrums), szGMDrums[iInstr]);
 	return TRUE;
 }
 
@@ -432,43 +432,43 @@ BOOL muGetMIDIMsgName(char *pName, tMIDI_MSG iMsg)
 	switch(iMsg)
 		{
 		case	msgNoteOff:
-				strcpy(pName, "Note off");
+				strcpy_s(pName, 32, "Note off");
 				break;
 
 		case	msgNoteOn:
-				strcpy(pName, "Note on");
+				strcpy_s(pName, 32, "Note on");
 				break;
 
 		case	msgNoteKeyPressure:
-				strcpy(pName, "Note key pressure");
+				strcpy_s(pName, 32, "Note key pressure");
 				break;
 
 		case	msgSetParameter:
-				strcpy(pName, "Set parameter");
+				strcpy_s(pName, 32, "Set parameter");
 				break;
 
 		case	msgSetProgram:
-				strcpy(pName, "Set program");
+				strcpy_s(pName, 32, "Set program");
 				break;
 
 		case	msgChangePressure:
-				strcpy(pName, "Change pressure");
+				strcpy_s(pName, 32, "Change pressure");
 				break;
 
 		case	msgSetPitchWheel:
-				strcpy(pName, "Set pitch wheel");
+				strcpy_s(pName, 32, "Set pitch wheel");
 				break;
 
 		case	msgMetaEvent:
-				strcpy(pName, "Meta event");
+				strcpy_s(pName, 32, "Meta event");
 				break;
 
 		case	msgSysEx1:
-				strcpy(pName, "SysEx1");
+				strcpy_s(pName, 32, "SysEx1");
 				break;
 
 		case	msgSysEx2:
-				strcpy(pName, "SysEx2");
+				strcpy_s(pName, 32, "SysEx2");
 				break;
 
 		default:
@@ -481,7 +481,7 @@ BOOL muGetControlName(char *pName, tMIDI_CC iCC)
 {
 	if (iCC < 0 || iCC > 127)
 		return FALSE;
-	strcpy(pName, szCCList[iCC]);
+	strcpy_s(pName, sizeof(szCCList), szCCList[iCC]);
 	return TRUE;
 }
 
@@ -496,8 +496,8 @@ int iRootNum = (iKey&7);
 int iFlats = (iKey&keyMaskNeg);
 int iMin = (iKey&keyMaskMin);
 
-	strcpy(pName,iKeysList[iFlats?1:0][iRootNum]);
-	strcat(pName,iMin?" Min":" Maj");
+	strcpy_s(pName, 8, iKeysList[iFlats?1:0][iRootNum]);
+	strcat_s(pName, 8, iMin ? " Min" : " Maj");
 	return TRUE;
 }
 
@@ -511,21 +511,21 @@ BOOL muGetMetaName(char *pName, tMIDI_META iEvent)
 {
 	switch(iEvent)
 		{
-		case	metaSequenceNumber:	strcpy(pName, "Sequence Number");	break;
-		case	metaTextEvent:		strcpy(pName, "Text Event");		break;
-		case	metaCopyright:		strcpy(pName, "Copyright");			break;
-		case	metaTrackName:		strcpy(pName, "Track Name");		break;
-		case	metaInstrument:		strcpy(pName, "Instrument");		break;
-		case	metaLyric:			strcpy(pName, "Lyric");				break;
-		case	metaMarker:			strcpy(pName, "Marker");			break;
-		case	metaCuePoint:		strcpy(pName, "Cue Point");			break;
-		case	metaMIDIPort:		strcpy(pName, "MIDI Port");		 break;
-		case	metaEndSequence:	strcpy(pName, "End Sequence");		break;
-		case	metaSetTempo:		strcpy(pName, "Set Tempo");			break;
-		case	metaSMPTEOffset:	strcpy(pName, "SMPTE Offset");		break;
-		case	metaTimeSig:		strcpy(pName, "Time Sig");			break;
-		case	metaKeySig:			strcpy(pName, "Key Sig");			break;
-		case	metaSequencerSpecific:	strcpy(pName, "Sequencer Specific");	break;
+		case	metaSequenceNumber:		strcpy_s(pName, 32, "Sequence Number");		break;
+		case	metaTextEvent:			strcpy_s(pName, 32, "Text Event");			break;
+		case	metaCopyright:			strcpy_s(pName, 32, "Copyright");			break;
+		case	metaTrackName:			strcpy_s(pName, 32, "Track Name");			break;
+		case	metaInstrument:			strcpy_s(pName, 32, "Instrument");			break;
+		case	metaLyric:				strcpy_s(pName, 32, "Lyric");				break;
+		case	metaMarker:				strcpy_s(pName, 32, "Marker");				break;
+		case	metaCuePoint:			strcpy_s(pName, 32, "Cue Point");			break;
+		case	metaMIDIPort:			strcpy_s(pName, 32, "MIDI Port");			break;
+		case	metaEndSequence:		strcpy_s(pName, 32, "End Sequence");		break;
+		case	metaSetTempo:			strcpy_s(pName, 32, "Set Tempo");			break;
+		case	metaSMPTEOffset:		strcpy_s(pName, 32, "SMPTE Offset");		break;
+		case	metaTimeSig:			strcpy_s(pName, 32, "Time Sig");			break;
+		case	metaKeySig:				strcpy_s(pName, 32, "Key Sig");				break;
+		case	metaSequencerSpecific:	strcpy_s(pName, 32, "Sequencer Specific");	break;
 		default:	return FALSE;
 		}
 	return TRUE;
@@ -542,7 +542,8 @@ int note_map[] = {9, 11, 0, 2, 4, 5, 7};
 char *p, cpy[16];
 int note=0;
 
-	strncpy(cpy, pName, 15);
+	strncpy_s(cpy, 256, pName, 15);
+	strncpy_s(cpy, 15, pName, 15);
 	cpy[15] = '\0';
 	p = cpy;
 
@@ -573,9 +574,9 @@ char *muGetNameFromNote(char *pStr, int iNote)
 	if (!pStr)		return NULL;
 
 	if (iNote<0 || iNote>127)
-		strcpy(pStr, "ERR");
+		strcpy_s(pStr, 8, "ERR");
 	else
-		sprintf(pStr, "%s%d", szNoteName[iNote%12], ((iNote-MIDI_NOTE_C0)/12));
+		sprintf_s(pStr, 256, "%s%d", szNoteName[iNote%12], ((iNote-MIDI_NOTE_C0)/12));
 	
 	return pStr;
 }
@@ -721,35 +722,35 @@ char *muGetChordName(char *str, int chord) {
 		bass = 0;
 	}
 
-	strcpy(str, szNoteName[root]);
+	strcpy_s(str, sizeof(szNoteName), szNoteName[root]);
 
 	switch(chord & CHORD_TYPE_MASK) {
 		case CHORD_TYPE_MAJOR:
 			break;
 		case CHORD_TYPE_MINOR:
-			strcat(str, "m");
+			strcat_s(str, 8, "m");
 			break;
 		case CHORD_TYPE_AUG:
-			strcat(str, " aug");
+			strcat_s(str, 8, " aug");
 			break;
 		case CHORD_TYPE_DIM:
-			strcat(str, " dim");
+			strcat_s(str, 8, " dim");
 			break;
 	}
 
 	if (chord & CHORD_ADD_7TH) {
-		strcat(str, "+7");
+		strcat_s(str, 8, "+7");
 	}
 	if (chord & CHORD_ADD_9TH) {
-		strcat(str, "+9");
+		strcat_s(str, 8, "+9");
 	}
 	if (chord & CHORD_ADD_MAJ7TH) {
-		strcat(str, "+7M");
+		strcat_s(str, 8, "+7M");
 	}
 	
 	if (bass != root) {
-		strcat(str, "/");
-		strcat(str, szNoteName[bass]);
+		strcat_s(str, 8, "/");
+		strcat_s(str, 8, szNoteName[bass]);
 	}
 
 	return str;

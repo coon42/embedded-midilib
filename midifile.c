@@ -248,7 +248,7 @@ int i;
 	
 	if (!bOverwriteIfExists)
 		{
-		if ((pMF->pFile = fopen(pFilename, "r")))
+		if (fopen_s(&pMF->pFile, pFilename, "r") == 0)
 			{
 			fclose(pMF->pFile);
 			free(pMF);
@@ -256,7 +256,7 @@ int i;
 			}
 		}
 	
-	if ((pMF->pFile = fopen(pFilename, "wb+")))
+	if (fopen_s(&pMF->pFile, pFilename, "wb+") == 0)
 		{/*empty*/}
 	else
 		{
@@ -347,18 +347,17 @@ int			midiFileGetVersion(const MIDI_FILE *_pMF)
 	return pMF->Header.iVersion;
 }
 
-MIDI_FILE  *midiFileOpen(const char *pFilename)
-{
-FILE *fp = fopen(pFilename, "rb");
-_MIDI_FILE *pMF = NULL;
-BYTE *ptr;
-BOOL bValidFile=FALSE;
-long size;
+MIDI_FILE  *midiFileOpen(const char *pFilename) {
+	FILE *fp = NULL;
+	_MIDI_FILE *pMF = NULL;
+	BYTE *ptr;
+	BOOL bValidFile=FALSE;
+	long size;
 
-	if (fp)
-		{
-		if ((pMF = (_MIDI_FILE *)malloc(sizeof(_MIDI_FILE))))
-			{
+	fopen_s(&fp, pFilename, "rb");
+
+	if (fp) {
+		if ((pMF = (_MIDI_FILE *)malloc(sizeof(_MIDI_FILE)))) {
 			fseek(fp, 0L, SEEK_END);
 			size = ftell(fp);
 			if ((pMF->ptr = (BYTE *)malloc(size)))
@@ -773,7 +772,7 @@ int sz;
 		*ptr++ = msgMetaEvent;
 		*ptr++ = (BYTE)iType;
 		ptr = _midiWriteVarLen((BYTE *)ptr, sz);
-		strcpy((char *)ptr, pTxt);
+		strcpy_s((char *)ptr, 256, pTxt);
 		pMF->Track[iTrack].ptr = ptr+sz;
 		return TRUE;
 		}
