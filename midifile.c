@@ -39,17 +39,20 @@ typedef struct 	{
 				} MIDI_LAST_NOTE;
 
 typedef struct 	{
-				BYTE *ptr;
-				BYTE *pBase;
-				BYTE *pEnd;
-				
-				DWORD pos;
-				DWORD dt;
+				BYTE *ptr; // obsolete
+				BYTE *pBase; // obsolete
+				BYTE *pEnd; // obsolete
+        DWORD ptrNew;
+        DWORD pBaseNew;
+        DWORD pEndNew;
+
+				DWORD pos; // TODO: which pos is meant here?
+				DWORD dt; // TODO: what is this?
 				/* For Reading MIDI Files */
 				DWORD sz;						/* size of whole iTrack */
 				/* For Writing MIDI Files */
 				DWORD iBlockSize;				/* max size of track */
-				BYTE iDefaultChannel;			/* use for write only */
+				BYTE iDefaultChannel;		/* use for write only */
 				BYTE last_status;				/* used for running status */
 				
 				MIDI_LAST_NOTE LastNote[MAX_TRACK_POLYPHONY];
@@ -75,6 +78,25 @@ typedef struct {
 				} _MIDI_FILE;
 
 
+// -----------------------------------
+// Global variables and new functions
+// -----------------------------------
+_MIDI_FILE _midiFile;
+
+int readBytesFromFile(FILE* pFile, void* dst, int startPos, size_t num) {
+  fseek(pFile, startPos, SEEK_SET);
+  return fread_s(dst, num, 1, num, pFile); // TODO: word access? Does it increase performance?
+}
+
+int readWordFromFile(FILE* pFile, WORD* dst, int startPos) {
+  return readBytesFromFile(pFile, dst, startPos, sizeof(WORD));
+}
+
+int readDwordFromFile(FILE* pFile, DWORD* dst, int startPos) {
+  return readBytesFromFile(pFile, dst, startPos, sizeof(DWORD));
+}
+
+
 /*
 ** Internal Functions
 */
@@ -84,9 +106,9 @@ typedef struct {
 
 #define _VAR_CAST				_MIDI_FILE *pMF = (_MIDI_FILE *)_pMF
 #define IsFilePtrValid(pMF)		(pMF)
-#define IsTrackValid(_x)		(_midiValidateTrack(pMF, _x))
+#define IsTrackValid(_x)		  (_midiValidateTrack(pMF, _x))
 #define IsChannelValid(_x)		((_x)>=1 && (_x)<=16)
-#define IsNoteValid(_x)			((_x)>=0 && (_x)<128)
+#define IsNoteValid(_x)			  ((_x)>=0 && (_x)<128)
 #define IsMessageValid(_x)		((_x)>=msgNoteOff && (_x)<=msgMetaEvent)
 
 
@@ -241,7 +263,7 @@ int length = ppqn;
 */
 MIDI_FILE  *midiFileCreate(const char *pFilename, BOOL bOverwriteIfExists)
 {
-_MIDI_FILE *pMF = (_MIDI_FILE *)malloc(sizeof(_MIDI_FILE));
+_MIDI_FILE *pMF = (_MIDI_FILE *)malloc(sizeof(_MIDI_FILE)); // TODO: remove
 int i;
 
 	if (!pMF)							return NULL;
@@ -347,77 +369,111 @@ int			midiFileGetVersion(const MIDI_FILE *_pMF)
 
 MIDI_FILE  *midiFileOpen(const char *pFilename)
 {
-  FILE *fp = NULL;
-  _MIDI_FILE *pMF = NULL;
-  BYTE *ptr;
+  FILE *fp = NULL; // obsolete
+  FILE *fpNew = NULL;
+  _MIDI_FILE *pMF = NULL;  // TODO: remove
+  BYTE *ptr; // TODO: remove
+  BYTE *ptrBase; // TODO: remove (custom)
+  DWORD ptrNew;
   BOOL bValidFile=FALSE;
-  long size;
+  long size; // obsolete
+  long sizeNew;
 
-  fopen_s(&fp, pFilename, "rb");
+  fopen_s(&fp, pFilename, "rb"); // obsolete
+  fopen_s(&fpNew, pFilename, "rb");
 
 	if (fp) {
 		if ((pMF = (_MIDI_FILE *)malloc(sizeof(_MIDI_FILE)))) {
-			fseek(fp, 0L, SEEK_END);
-			size = ftell(fp);
+			fseek(fp, 0L, SEEK_END); // obsolete
+			fseek(fpNew, 0L, SEEK_END);
+			size = ftell(fp); // obsolete
+			sizeNew = ftell(fpNew);
 			if ((pMF->ptr = (BYTE *)malloc(size))) {
-				fseek(fp, 0L, SEEK_SET);
-				fread(pMF->ptr, sizeof(BYTE), size, fp);
+				fseek(fp, 0L, SEEK_SET); // obsolete
+				fseek(fpNew, 0L, SEEK_SET);
+				fread(pMF->ptr, sizeof(BYTE), size, fp); // obsolete (read whole file into RAM)
 				/* Is this a valid MIDI file ? */
-				ptr = pMF->ptr;
+				ptrBase = ptr = pMF->ptr;
+        ptrNew = 0;
 				if (*(ptr+0) == 'M' && *(ptr+1) == 'T' && 
 					*(ptr+2) == 'h' && *(ptr+3) == 'd') {
-					DWORD dwData;
-					WORD wData;
+					DWORD dwData; // obsolete
+          DWORD dwDataNew;
+					WORD wData; // obsolete
+          WORD wDataNew;
 					int i;
 
-					dwData = *((DWORD *)(ptr+4));
-					pMF->Header.iHeaderSize = SWAP_DWORD(dwData);
+					dwData = *((DWORD *)(ptr+4)); // obsolete
+          readDwordFromFile(fpNew, &dwDataNew, 4);
+					pMF->Header.iHeaderSize = SWAP_DWORD(dwData); // obsolete
+          _midiFile.Header.iHeaderSize = SWAP_DWORD(dwDataNew);
 					
-					wData = *((WORD *)(ptr+8));
-					pMF->Header.iVersion = (WORD)SWAP_WORD(wData);
+					wData = *((WORD *)(ptr+8)); // obsolete
+          readWordFromFile(fpNew, &wDataNew, 8);
+					pMF->Header.iVersion = (WORD)SWAP_WORD(wData); // obsolete
+          _midiFile.Header.iVersion = (WORD)SWAP_WORD(wDataNew);
 					
-					wData = *((WORD *)(ptr+10));
-					pMF->Header.iNumTracks = (WORD)SWAP_WORD(wData);
+					wData = *((WORD *)(ptr+10)); // obsolete
+          readWordFromFile(fpNew, &wDataNew, 10);
+					pMF->Header.iNumTracks = (WORD)SWAP_WORD(wData); // obsolete
+          _midiFile.Header.iNumTracks = (WORD)SWAP_WORD(wDataNew);
+
+					wData = *((WORD *)(ptr+12)); // obsolete
+          readWordFromFile(fpNew, &wDataNew, 12);
+
+					pMF->Header.PPQN = (WORD)SWAP_WORD(wData); // obsolete
+          _midiFile.Header.PPQN = (WORD)SWAP_WORD(wDataNew);
 					
-					wData = *((WORD *)(ptr+12));
-					pMF->Header.PPQN = (WORD)SWAP_WORD(wData);
-					
-					ptr += pMF->Header.iHeaderSize+8;
+					ptr += pMF->Header.iHeaderSize + 8; // obsolete
+          ptrNew += _midiFile.Header.iHeaderSize + 8;
 					/*
 					**	 Get all tracks
 					*/
-					for(i=0;i<MAX_MIDI_TRACKS;++i) {
+
+          // Init
+					for(i = 0; i < MAX_MIDI_TRACKS; ++i) {
 						pMF->Track[i].pos = 0;
 						pMF->Track[i].last_status = 0;
 					}
 					
-					for(i=0;i<pMF->Header.iNumTracks;++i)
-						{
-						pMF->Track[i].pBase = ptr;
-						pMF->Track[i].ptr = ptr+8;
-						dwData = *((DWORD *)(ptr+4));
-						pMF->Track[i].sz = SWAP_DWORD(dwData);
-						pMF->Track[i].pEnd = ptr+pMF->Track[i].sz+8;
-						ptr += pMF->Track[i].sz+8;
-						}
-						   
-					pMF->bOpenForWriting = FALSE;
-					pMF->pFile = NULL;
+					for(i = 0; i < pMF->Header.iNumTracks; ++i) {
+						pMF->Track[i].pBase = ptr; // obsolete
+            _midiFile.Track[i].pBaseNew = ptrNew;
+
+						pMF->Track[i].ptr = ptr + 8; // obsolete
+            _midiFile.Track[i].ptrNew = ptrNew + 8;
+
+						dwData = *((DWORD *)(ptr + 4)); // obsolete
+            readDwordFromFile(fpNew, &dwDataNew, ptrNew + 4);
+
+						pMF->Track[i].sz = SWAP_DWORD(dwData); // obsolete
+            _midiFile.Track[i].sz = SWAP_DWORD(dwDataNew);
+
+						pMF->Track[i].pEnd = ptr + pMF->Track[i].sz + 8; // obsolete
+            _midiFile.Track[i].pEndNew = ptrNew + _midiFile.Track[i].sz + 8;
+
+						ptr += pMF->Track[i].sz + 8; // obsolete
+            ptrNew += _midiFile.Track[i].sz + 8;
+          }
+
+					pMF->bOpenForWriting = FALSE; // obsolete
+          _midiFile.bOpenForWriting = FALSE;
+					pMF->pFile = NULL; // obsolete
 					bValidFile = TRUE;
-					}
 				}
 			}
+		}
 
-		fclose(fp);
-		}
+	fclose(fp); // obsolete
+	}
 	
-	if (!bValidFile)
-		{
-		if (pMF)		free((void *)pMF);
+	if (!bValidFile) {
+		if (pMF)		free((void *)pMF); // obsolete
 		return NULL;
-		}
+  }
 	
-	return (MIDI_FILE *)pMF;
+	return (MIDI_FILE *)pMF; // obsolete
+  return (MIDI_FILE *)&_midiFile; // useless here, but will be used in future
 }
 
 typedef struct {
