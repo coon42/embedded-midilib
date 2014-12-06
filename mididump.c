@@ -41,24 +41,22 @@ int i;
 
 void DumpEventList(const char *pFilename)
 {
-MIDI_FILE *mf = midiFileOpen(pFilename);
-char str[128];
-int ev;
+  MIDI_FILE* mf = midiFileOpen(pFilename, FALSE);
+  MIDI_FILE* mfEmbedded = midiFileOpen(pFilename, TRUE);
+  char str[128];
+  int ev;
 
-	if (mf)
-		{
+	if (mf) {
 		MIDI_MSG msg;
 		int i, iNum;
 		unsigned int j;
 
 		midiReadInitMessage(&msg);
-		iNum = midiReadGetNumTracks(mf);
+		iNum = midiReadGetNumTracks(mf, mfEmbedded);
 
-		for(i=0;i<iNum;i++)
-			{
+		for(i=0;i<iNum;i++) {
 			printf("# Track %d\n", i);
-			while(midiReadGetNextMessage(mf, i, &msg))
-				{
+			while(midiReadGetNextMessage(mf, mfEmbedded, i, &msg, FALSE)) {
 				printf(" %.6ld ", msg.dwAbsPos);
 				if (msg.bImpliedMsg)
 					{ ev = msg.iImpliedMsg; }
@@ -66,8 +64,7 @@ int ev;
 					{ ev = msg.iType; }
 
 				if (muGetMIDIMsgName(str, ev))	printf("%s\t", str);
-				switch(ev)
-					{
+				switch(ev) {
 					case	msgNoteOff:
 							muGetNameFromNote(str, msg.MsgData.NoteOff.iNote);
 							printf("(%.2d) %s", msg.MsgData.NoteOff.iChannel, str);
@@ -102,8 +99,7 @@ int ev;
 
 					case	msgMetaEvent:
 							printf("---- ");
-							switch(msg.MsgData.MetaEvent.iType)
-								{
+							switch(msg.MsgData.MetaEvent.iType) {
 								case	metaMIDIPort:
 										printf("MIDI Port = %d", msg.MsgData.MetaEvent.Data.iMIDIPort);
 										break;
@@ -175,8 +171,7 @@ int ev;
 					{
 					/* Already done a hex dump */
 					}
-				else
-					{
+				else {
 					printf("\t[");
 					if (msg.bImpliedMsg) printf("%.2x!", msg.iImpliedMsg);
 					for(j=0;j<msg.iMsgSize;j++)
@@ -187,7 +182,7 @@ int ev;
 			}
 
 		midiReadFreeMessage(&msg);
-		midiFileClose(mf);
+		//midiFileClose(mf); obsolete?
 		}
 }
 
