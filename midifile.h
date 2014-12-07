@@ -85,8 +85,9 @@ typedef struct {
 					/* Raw data chunk */
 					BYTE *data;		/* dynamic data block */
           BYTE dataEmbedded[META_EVENT_MAX_DATA_SIZE]; // constant data block
-					DWORD data_sz;
-					
+					DWORD data_sz; // This is the size of the dynamic allocated buffer
+          DWORD data_sz_embedded; // This is the real size of meta text data!
+
 					union {
 						struct {
 								int			iNote;

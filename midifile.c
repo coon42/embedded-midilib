@@ -746,7 +746,7 @@ BOOL	midiTrackAddRaw(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int d
 	if (!IsTrackValid(iTrack))			return FALSE;
 	
 	pTrk = &pMF->Track[iTrack];
-	ptr = _midiGetPtr(pMF, iTrack, data_sz+DT_DEF);
+	ptr = _midiGetPtr(pMF, iTrack, data_sz + DT_DEF);
 	if (!ptr)
 		return FALSE;
 	
@@ -759,7 +759,7 @@ BOOL	midiTrackAddRaw(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int d
 	
 	pTrk->pos += dtime;
 	pTrk->dt = 0;
-	pTrk->ptr = ptr+data_sz;
+	pTrk->ptr = ptr + data_sz;
 	
 	return TRUE;
 }
@@ -983,6 +983,7 @@ static BOOL _midiReadTrackCopyData(MIDI_MSG* pMsg, _MIDI_FILE* pMFembedded, MIDI
       printf("\r\n_midiReadTrackCopyData; Warning: Meta data is greater than maximum size! (%d of %d)\r\n", sz, META_EVENT_MAX_DATA_SIZE);
     }
     readChunkFromFile(pMFembedded->pFile, pMsgEmbedded->dataEmbedded, ptrEmbedded, *szEmbedded);
+    pMsgEmbedded->data_sz_embedded = *szEmbedded;
   }
 
 	return TRUE;
@@ -1000,9 +1001,6 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
   DWORD bptrEmbedded, pMsgDataPtrEmbedded;
   int sz;
   size_t szEmbedded;
-
-  memset(pMsg, 0, sizeof(MIDI_MSG)); // for debugging only, remove later!
-  memset(pMsgEmbedded, 0, sizeof(MIDI_MSG)); // for debugging only, remove later!
 
 	_VAR_CAST;
 	if (!IsTrackValid(iTrack))			return FALSE;
@@ -1033,6 +1031,8 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 		** important in their lower bits that we must keep */
 		if (pMsg->iType == 0xf0)
 			pMsg->iType = (tMIDI_MSG)(*pTrack->ptr);
+
+    
   }
 	else {  /* just data - so use the last msg type */
 		pMsg->iType = pMsg->iLastMsgType;
@@ -1112,7 +1112,7 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
       // embedded
       BYTE tmpNote = 0;
       BYTE tmpPressure = 0;
-      pMsgEmbedded->MsgData.NoteOn.iChannel = pMsgEmbedded->iLastMsgChnl;
+      pMsgEmbedded->MsgData.NoteKeyPressure.iChannel = pMsgEmbedded->iLastMsgChnl;
       readByteFromFile(pMFembedded->pFile, &tmpNote, pMsgDataPtrEmbedded);
       readByteFromFile(pMFembedded->pFile, &tmpPressure, pMsgDataPtrEmbedded + 1);
       pMsgEmbedded->MsgData.NoteKeyPressure.iNote = tmpNote;
@@ -1130,7 +1130,7 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
       // embedded
       BYTE tmpControl = 0;
       BYTE tmpParam = 0;
-      pMsgEmbedded->MsgData.NoteOn.iChannel = pMsgEmbedded->iLastMsgChnl;
+      pMsgEmbedded->MsgData.NoteParameter.iChannel = pMsgEmbedded->iLastMsgChnl;
       readByteFromFile(pMFembedded->pFile, &tmpControl, pMsgDataPtrEmbedded);
       readByteFromFile(pMFembedded->pFile, &tmpParam, pMsgDataPtrEmbedded + 1);
       pMsgEmbedded->MsgData.NoteParameter.iControl = tmpControl;
@@ -1160,9 +1160,8 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 
       // embedded
       BYTE tmpPressure = 0;
-      pMsgEmbedded->MsgData.ChangeProgram.iChannel = pMsgEmbedded->iLastMsgChnl;
+      pMsgEmbedded->MsgData.ChangePressure.iChannel = pMsgEmbedded->iLastMsgChnl;
       readByteFromFile(pMFembedded->pFile, &tmpPressure, pMsgDataPtrEmbedded);
-      pMsgEmbedded->MsgData.ChangeProgram.iProgram = tmpPressure;
       pMsgEmbedded->iMsgSize = 2;
 			break;
     }
@@ -1174,7 +1173,7 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 			pMsg->iMsgSize = 3;
 
       // embedded (needs to be checked!)
-      pMsgEmbedded->MsgData.NoteOn.iChannel = pMsgEmbedded->iLastMsgChnl;
+      pMsgEmbedded->MsgData.PitchWheel.iChannel = pMsgEmbedded->iLastMsgChnl;
       BYTE tmpPitchLow = 0;
       BYTE tmpPitchHigh = 0;
       readByteFromFile(pMFembedded->pFile, &tmpPitchLow, pMsgDataPtrEmbedded);
@@ -1214,12 +1213,10 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 
 		  /* TODO: Place the META data it in a neat structure also for embedded! */
 		  switch(pMsg->MsgData.MetaEvent.iType) {
-			  case	metaMIDIPort:
-					  pMsg->MsgData.MetaEvent.Data.iMIDIPort = *(pTrack->ptr + 0);
-					  break;
-			  case	metaSequenceNumber:
+        case	metaSequenceNumber:
 					  pMsg->MsgData.MetaEvent.Data.iSequenceNumber = *(pTrack->ptr + 0);
 					  break;
+			 
 			  case	metaTextEvent:
 			  case	metaCopyright:
 			  case	metaTrackName:
@@ -1229,7 +1226,12 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 			  case	metaCuePoint:
 					  /* TODO - Add NULL terminator ??? */
 					  pMsg->MsgData.MetaEvent.Data.Text.pData = pTrack->ptr;
+            pMsgEmbedded->MsgData.MetaEvent.Data.Text.pData = pMsgEmbedded->dataEmbedded + 3;
 					  break;
+
+        case	metaMIDIPort:
+          pMsg->MsgData.MetaEvent.Data.iMIDIPort = *(pTrack->ptr + 0);
+          break;
 			  case	metaEndSequence:
 					  /* NO DATA */
 					  break;
@@ -1310,9 +1312,9 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 			pMsg->iMsgSize--;
     }
 
-    // The next line is done in embedded part!
+    // The next two lines are done in embedded part!
 		//_midiReadTrackCopyData(pMsg, pMFembedded, pMsgEmbedded, pTrack->ptr, pTrackNew->ptrNew, pMsg->iMsgSize, &pMsgEmbedded->iMsgSize, TRUE);
-		pTrack->ptr += pMsg->iMsgSize; // obsolete
+		//pTrack->ptr += pMsg->iMsgSize; // obsolete
   }
 
   // embedded (needs to be checked!)
@@ -1330,6 +1332,7 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 
     _midiReadTrackCopyData(pMsg, pMFembedded, pMsgEmbedded, pTrack->ptr, pTrackNew->ptrNew, pMsg->iMsgSize, &pMsgEmbedded->iMsgSize, TRUE);
     pTrackNew->ptrNew += pMsgEmbedded->iMsgSize;
+    pTrack->ptr += pMsg->iMsgSize; // obsolete
   }
 
 
