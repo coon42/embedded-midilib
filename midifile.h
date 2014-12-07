@@ -49,6 +49,9 @@ typedef int					BOOL;
 #define FALSE	0
 #endif
 
+// Embedded Constants
+#define META_EVENT_MAX_DATA_SIZE 64
+
 
 /*
 ** MIDI Constants
@@ -81,6 +84,7 @@ typedef struct {
 
 					/* Raw data chunk */
 					BYTE *data;		/* dynamic data block */
+          BYTE dataEmbedded[META_EVENT_MAX_DATA_SIZE]; // constant data block
 					DWORD data_sz;
 					
 					union {

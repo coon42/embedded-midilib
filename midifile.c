@@ -928,7 +928,7 @@ int		midiTrackGetEndPos(MIDI_FILE *_pMF, MIDI_FILE *_pMFembedded, int iTrack) {
 ** midiRead* Functions
 */
 
-// buggy?
+// ok!
 static BYTE* _midiReadVarLen(BYTE* ptr, _MIDI_FILE* pMFembedded, DWORD* ptrNew, DWORD* num, DWORD* numEmbedded) {
   DWORD value, valueEmbedded;
   BYTE c;
@@ -965,18 +965,26 @@ static BYTE* _midiReadVarLen(BYTE* ptr, _MIDI_FILE* pMFembedded, DWORD* ptrNew, 
   return(ptr);
 }
 
-static BOOL _midiReadTrackCopyData(MIDI_MSG *pMsg, BYTE *ptr, DWORD sz, BOOL bCopyPtrData) {
+static BOOL _midiReadTrackCopyData(MIDI_MSG* pMsg, _MIDI_FILE* pMFembedded, MIDI_MSG* pMsgEmbedded, BYTE* ptr, DWORD ptrEmbedded, DWORD sz, size_t* szEmbedded, BOOL bCopyPtrData) {
+  // standard version
 	if (sz > pMsg->data_sz) {
 		pMsg->data = (BYTE *)realloc(pMsg->data, sz);
 		pMsg->data_sz = sz;
   }
-	
-	if (!pMsg->data)
-		return FALSE;
-	
-	if (bCopyPtrData && ptr)
+  if (!pMsg->data)
+    return FALSE;
+
+  if (bCopyPtrData && ptr) {
 		memcpy(pMsg->data, ptr, sz);
-	
+
+    // embedded part
+    if (*szEmbedded > META_EVENT_MAX_DATA_SIZE) {
+      *szEmbedded = META_EVENT_MAX_DATA_SIZE;
+      printf("\r\n_midiReadTrackCopyData; Warning: Meta data is greater than maximum size! (%d of %d)\r\n", sz, META_EVENT_MAX_DATA_SIZE);
+    }
+    readChunkFromFile(pMFembedded->pFile, pMsgEmbedded->dataEmbedded, ptrEmbedded, *szEmbedded);
+  }
+
 	return TRUE;
 }
 
@@ -992,6 +1000,9 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
   DWORD bptrEmbedded, pMsgDataPtrEmbedded;
   int sz;
   size_t szEmbedded;
+
+  memset(pMsg, 0, sizeof(MIDI_MSG)); // for debugging only, remove later!
+  memset(pMsgEmbedded, 0, sizeof(MIDI_MSG)); // for debugging only, remove later!
 
 	_VAR_CAST;
 	if (!IsTrackValid(iTrack))			return FALSE;
@@ -1071,7 +1082,6 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
       pMsgEmbedded->iMsgSize = 3;
       break;
       
-      /* TODO!
 		case	msgNoteOn: // 0x09 'Note On'
       pMsg->MsgData.NoteOn.iChannel = pMsg->iLastMsgChnl;
       pMsg->MsgData.NoteOn.iNote = *(pMsgDataPtr);
@@ -1111,7 +1121,6 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 			pMsg->MsgData.PitchWheel.iPitch -= MIDI_WHEEL_CENTRE;
 			pMsg->iMsgSize = 3;
 			break;
-      */
 
     // -------------------------
     // -    Meta Events     -
@@ -1119,30 +1128,35 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 		case	msgMetaEvent:
 		  /* We can use 'pTrack->ptr' from now on, since meta events
 		  ** always have bit 7 set */
+
+      // Get Meta Event Type
 		  bptr = pTrack->ptr; // obsolete
       bptrEmbedded = pTrackNew->ptrNew;
 		  pMsg->MsgData.MetaEvent.iType = (tMIDI_META)*(pTrack->ptr + 1); // obsolete
-      pMsgEmbedded->MsgData.MetaEvent.iType = 0;
-      readByteFromFile(pMFembedded->pFile, &pMsgEmbedded->MsgData.MetaEvent.iType, pTrackNew->ptrNew + 1);
-       
+      BYTE tmpType = 0;
+      readByteFromFile(pMFembedded->pFile, &tmpType, pTrackNew->ptrNew + 1);
+      pMsgEmbedded->MsgData.MetaEvent.iType = tmpType;
+
+      // Get Meta Event Length (TODO: find a 'live' method instead of using a constant sized buffer?)
       pTrackNew->ptrNew += 2;
 		  pTrack->ptr = _midiReadVarLen(pTrack->ptr + 2, pMFembedded, &pTrackNew->ptrNew, &pMsg->iMsgSize, &pMsgEmbedded->iMsgSize);
 		  sz = (pTrack->ptr - bptr) + pMsg->iMsgSize;
       szEmbedded = pTrackNew->ptrNew - bptrEmbedded + pMsgEmbedded->iMsgSize;
-							
-		  if (_midiReadTrackCopyData(pMsg, pTrack->ptr, sz, FALSE) == FALSE)
+
+		  if (_midiReadTrackCopyData(pMsg, pMFembedded, pMsgEmbedded, pTrack->ptr, pTrackNew->ptrNew, sz, &szEmbedded, FALSE) == FALSE)
 			  return FALSE;
 
 		  /* Now copy the data...*/
-		  memcpy(pMsg->data, bptr, sz);
+		  memcpy(pMsg->data, bptr, sz); // obsolete
+      readChunkFromFile(pMFembedded->pFile, pMsgEmbedded->dataEmbedded, bptrEmbedded, szEmbedded);
 
-		  /* Now place it in a neat structure */
+		  /* TODO: Place the META data it in a neat structure also for embedded! */
 		  switch(pMsg->MsgData.MetaEvent.iType) {
 			  case	metaMIDIPort:
-					  pMsg->MsgData.MetaEvent.Data.iMIDIPort = *(pTrack->ptr+0);
+					  pMsg->MsgData.MetaEvent.Data.iMIDIPort = *(pTrack->ptr + 0);
 					  break;
 			  case	metaSequenceNumber:
-					  pMsg->MsgData.MetaEvent.Data.iSequenceNumber = *(pTrack->ptr+0);
+					  pMsg->MsgData.MetaEvent.Data.iSequenceNumber = *(pTrack->ptr + 0);
 					  break;
 			  case	metaTextEvent:
 			  case	metaCopyright:
@@ -1192,8 +1206,11 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 					  break;
       }
 
-		  pTrack->ptr += pMsg->iMsgSize;
-		  pMsg->iMsgSize = sz;
+		  pTrack->ptr += pMsg->iMsgSize; // obsolete
+      pTrackNew->ptrNew += pMsgEmbedded->iMsgSize;
+		  pMsg->iMsgSize = sz; // obsolete
+      pMsgEmbedded->iMsgSize = szEmbedded;
+
 		  break;
 
     // ----------------------------------
@@ -1205,7 +1222,7 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 		  pTrack->ptr = _midiReadVarLen(pTrack->ptr+1, pMFembedded, &pTrack->ptrNew, &pMsg->iMsgSize, &pMsgEmbedded->iMsgSize);
 		  sz = (pTrack->ptr-bptr)+pMsg->iMsgSize;
 							
-		  if (_midiReadTrackCopyData(pMsg, pTrack->ptr, sz, FALSE) == FALSE)
+		  if (_midiReadTrackCopyData(pMsg, pMFembedded, pMsgEmbedded, pTrack->ptr, pTrackNew->ptrNew, sz, &szEmbedded, FALSE) == FALSE)
 			  return FALSE;
 
 		  /* Now copy the data... */
@@ -1220,7 +1237,7 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 	** Standard MIDI messages use a common copy routine
 	*/
 	pMsg->bImpliedMsg = FALSE;
-	if ((pMsg->iType&0xf0) != 0xf0) {
+	if ((pMsg->iType & 0xf0) != 0xf0) {
 		if (*pTrack->ptr & 0x80) {
     }
 		else {
@@ -1229,8 +1246,8 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 			pMsg->iMsgSize--;
     }
 
-		_midiReadTrackCopyData(pMsg, pTrack->ptr, pMsg->iMsgSize, TRUE);
-		pTrack->ptr+=pMsg->iMsgSize;
+		//_midiReadTrackCopyData(pMsg, pMFembedded, pMsgEmbedded, pTrack->ptr, pTrackNew->ptrNew, pMsg->iMsgSize, &pMsgEmbedded->iMsgSize, TRUE);
+		pTrack->ptr += pMsg->iMsgSize;
   }
   return TRUE;
 }
