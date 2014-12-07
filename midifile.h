@@ -39,7 +39,7 @@
 ** Types because we're dealing with files, and need to be careful
 */
 typedef	unsigned char		BYTE;
-typedef	unsigned short		WORD;
+typedef	unsigned short  WORD;
 typedef	unsigned long		DWORD;
 typedef int					BOOL;
 #ifndef TRUE
@@ -48,6 +48,7 @@ typedef int					BOOL;
 #ifndef FALSE
 #define FALSE	0
 #endif
+
 
 // Embedded Constants
 #define META_EVENT_MAX_DATA_SIZE 64
@@ -67,6 +68,55 @@ typedef int					BOOL;
 
 // Don't change this!
 #define MICROSECONDS_PER_MINUTE 60000000L
+
+// temporary, move back to c file later, to make this private!
+/*
+** Internal Data Structures
+*/
+typedef struct 	{
+  BYTE note, chn;
+  BYTE valid, p2;
+  DWORD end_pos;
+} MIDI_LAST_NOTE;
+
+typedef struct 	{
+  BYTE *ptr; // obsolete
+  BYTE *pBase; // obsolete
+  BYTE *pEnd; // obsolete
+  DWORD ptrNew;
+  DWORD pBaseNew;
+  DWORD pEndNew;
+
+  DWORD pos; // TODO: which pos is meant here?
+  DWORD dt; // TODO: what is this?
+  /* For Reading MIDI Files */
+  DWORD sz;						/* size of whole iTrack */
+  /* For Writing MIDI Files */
+  DWORD iBlockSize;				/* max size of track */
+  BYTE iDefaultChannel;		/* use for write only */
+  BYTE last_status;				/* used for running status */
+
+  MIDI_LAST_NOTE LastNote[MAX_TRACK_POLYPHONY];
+} MIDI_FILE_TRACK;
+
+typedef struct 	{
+  DWORD	iHeaderSize;
+  /**/
+  WORD	iVersion;		/* 0, 1 or 2 */
+  WORD	iNumTracks;		/* number of tracks... (will be 1 for MIDI type 0) */
+  WORD	PPQN;			/* pulses per quarter note */
+} MIDI_HEADER;
+
+typedef struct {
+  FILE				*pFile;
+  BOOL				bOpenForWriting;
+
+  MIDI_HEADER			Header;
+  BYTE *ptr;			/* to whole data block */
+  DWORD file_sz;
+
+  MIDI_FILE_TRACK		Track[MAX_MIDI_TRACKS];
+} _MIDI_FILE;
 
 /*
 ** MIDI structures, accessibly externably

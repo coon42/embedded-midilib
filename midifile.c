@@ -29,53 +29,9 @@
 #endif
 #include "midifile.h"
 
-/*
-** Internal Data Structures
-*/
-typedef struct 	{
-				BYTE note, chn;
-				BYTE valid, p2;
-				DWORD end_pos;
-				} MIDI_LAST_NOTE;
 
-typedef struct 	{
-				BYTE *ptr; // obsolete
-				BYTE *pBase; // obsolete
-				BYTE *pEnd; // obsolete
-        DWORD ptrNew;
-        DWORD pBaseNew;
-        DWORD pEndNew;
 
-				DWORD pos; // TODO: which pos is meant here?
-				DWORD dt; // TODO: what is this?
-				/* For Reading MIDI Files */
-				DWORD sz;						/* size of whole iTrack */
-				/* For Writing MIDI Files */
-				DWORD iBlockSize;				/* max size of track */
-				BYTE iDefaultChannel;		/* use for write only */
-				BYTE last_status;				/* used for running status */
-				
-				MIDI_LAST_NOTE LastNote[MAX_TRACK_POLYPHONY];
-				} MIDI_FILE_TRACK;
 
-typedef struct 	{
-				DWORD	iHeaderSize;
-				/**/
-				WORD	iVersion;		/* 0, 1 or 2 */
-				WORD	iNumTracks;		/* number of tracks... (will be 1 for MIDI type 0) */
-				WORD	PPQN;			/* pulses per quarter note */
-				} MIDI_HEADER;
-
-typedef struct {
-				FILE				*pFile;
-				BOOL				bOpenForWriting;
-				
-				MIDI_HEADER			Header;
-				BYTE *ptr;			/* to whole data block */
-				DWORD file_sz;
-				
-				MIDI_FILE_TRACK		Track[MAX_MIDI_TRACKS];
-				} _MIDI_FILE;
 
 
 // -----------------------------------
@@ -116,6 +72,7 @@ int readDwordFromFile(FILE* pFile, DWORD* dst, int startPos) {
 #define IsMessageValid(_x)		((_x)>=msgNoteOff && (_x)<=msgMetaEvent)
 
 
+// looks ok!
 static BOOL _midiValidateTrack(const _MIDI_FILE *pMF, const _MIDI_FILE *pMFembedded, int iTrack) {
   // normal version
 	if (!IsFilePtrValid(pMF))	return FALSE;
@@ -147,6 +104,7 @@ static BOOL _midiValidateTrack(const _MIDI_FILE *pMF, const _MIDI_FILE *pMFembed
 	return TRUE;
 }
 
+// TODO!
 static BYTE *_midiWriteVarLen(BYTE *ptr, int n) {
   register long buffer;
   register long value=n;
@@ -172,6 +130,8 @@ static BYTE *_midiWriteVarLen(BYTE *ptr, int n) {
 /* Return a ptr to valid block of memory to store a message
 ** of up to sz_reqd bytes 
 */
+
+// TODO!
 static BYTE *_midiGetPtr(_MIDI_FILE *pMF, int iTrack, int sz_reqd) {
   const DWORD mem_sz_inc = 8092;	/* arbitary */
   BYTE *ptr;
@@ -198,7 +158,7 @@ static BYTE *_midiGetPtr(_MIDI_FILE *pMF, int iTrack, int sz_reqd) {
 	return ptr;
 }
 
-
+// TODO!
 static int _midiGetLength(int ppqn, int iNoteLen, BOOL bOverride) {
   int length = ppqn;
 	
@@ -264,6 +224,8 @@ static int _midiGetLength(int ppqn, int iNoteLen, BOOL bOverride) {
 /*
 ** midiFile* Functions
 */
+
+// TODO!
 MIDI_FILE  *midiFileCreate(const char *pFilename, BOOL bOverwriteIfExists) {
   _MIDI_FILE *pMF = (_MIDI_FILE *)malloc(sizeof(_MIDI_FILE)); // TODO: remove
   int i;
@@ -304,6 +266,7 @@ MIDI_FILE  *midiFileCreate(const char *pFilename, BOOL bOverwriteIfExists) {
 	return (MIDI_FILE *)pMF;
 }
 
+// TODO!
 int		midiFileSetTracksDefaultChannel(MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int iTrack, int iChannel, BOOL embedded) {
   int prev;
 
@@ -320,6 +283,7 @@ int		midiFileSetTracksDefaultChannel(MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, i
 	return prev;
 }
 
+// TODO!
 int		midiFileGetTracksDefaultChannel(const MIDI_FILE *_pMF, MIDI_FILE *_pMFembedded, int iTrack, BOOL embedded) {
 	_VAR_CAST;
 	if (!IsFilePtrValid(pMF))				return 0;
@@ -328,6 +292,7 @@ int		midiFileGetTracksDefaultChannel(const MIDI_FILE *_pMF, MIDI_FILE *_pMFembed
 	return pMF->Track[iTrack].iDefaultChannel+1;
 }
 
+// TODO!
 int		midiFileSetPPQN(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int PPQN) {
   int prev;
 
@@ -338,12 +303,14 @@ int		midiFileSetPPQN(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int PPQN) {
 	return prev;
 }
 
+// TODO!
 int		midiFileGetPPQN(const MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded) {
 	_VAR_CAST;
 	if (!IsFilePtrValid(pMF))				return MIDI_PPQN_DEFAULT;
 	return (int)pMF->Header.PPQN;
 }
 
+// TODO!
 int		midiFileSetVersion(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iVersion) {
   int prev;
 
@@ -355,12 +322,14 @@ int		midiFileSetVersion(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iVersion) 
 	return prev;
 }
 
+// TODO!
 int			midiFileGetVersion(const MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded) {
 	_VAR_CAST;
 	if (!IsFilePtrValid(pMF))				return MIDI_VERSION_DEFAULT;
 	return pMF->Header.iVersion;
 }
 
+// looks ok!
 MIDI_FILE  *midiFileOpen(const char *pFilename, BOOL embedded) {
   FILE *fp = NULL; // obsolete
   FILE *fpNew = NULL;
@@ -475,6 +444,8 @@ typedef struct {
 		int	iEndPos;
 		} MIDI_END_POINT;
 
+
+// TODO!
 static int qs_cmp_pEndPoints(const void *e1, const void *e2) {
   MIDI_END_POINT *p1 = (MIDI_END_POINT *)e1;
   MIDI_END_POINT *p2 = (MIDI_END_POINT *)e2;
@@ -482,6 +453,7 @@ static int qs_cmp_pEndPoints(const void *e1, const void *e2) {
 	return p1->iEndPos-p2->iEndPos;
 }
 
+// TODO!
 BOOL	midiFileFlushTrack(MIDI_FILE *_pMF, MIDI_FILE *_pMFembedded, int iTrack, BOOL bFlushToEnd, DWORD dwEndTimePos) {
   int sz;
   BYTE *ptr;
@@ -550,6 +522,7 @@ BOOL	midiFileFlushTrack(MIDI_FILE *_pMF, MIDI_FILE *_pMFembedded, int iTrack, BO
 	return TRUE;
 }
 
+// TODO!
 BOOL	midiFileSyncTracks(MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int iTrack1, int iTrack2) {
   int p1, p2;
 
@@ -567,7 +540,7 @@ BOOL	midiFileSyncTracks(MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int iTrack1, i
 	return TRUE;
 }
 
-
+// TODO?
 BOOL	midiFileClose(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded) {
 	_VAR_CAST;
 	if (!IsFilePtrValid(pMF))			return FALSE;
@@ -647,6 +620,8 @@ BOOL	midiFileClose(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded) {
 /*
 ** midiSong* Functions
 */
+
+// TODO!
 BOOL	midiSongAddSMPTEOffset(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int iHours, int iMins, int iSecs, int iFrames, int iFFrames) {
   static BYTE tmp[] = {msgMetaEvent, metaSMPTEOffset, 0x05, 0,0,0,0,0};
 
@@ -666,11 +641,12 @@ BOOL	midiSongAddSMPTEOffset(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack
   return midiTrackAddRaw(pMF, pMFembedded, iTrack, sizeof(tmp), tmp, FALSE, 0);
 }
 
-
+// TODO!
 BOOL	midiSongAddSimpleTimeSig(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int iNom, int iDenom) {
   return midiSongAddTimeSig(_pMF, _pMFembedded, iTrack, iNom, iDenom, 24, 8);
 }
 
+// TODO!
 BOOL	midiSongAddTimeSig(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int iNom, int iDenom, int iClockInMetroTick, int iNotated32nds) {
   static BYTE tmp[] = {msgMetaEvent, metaTimeSig, 0x04, 0,0,0,0};
 
@@ -685,6 +661,7 @@ BOOL	midiSongAddTimeSig(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, in
   return midiTrackAddRaw(pMF, pMFembedded, iTrack, sizeof(tmp), tmp, FALSE, 0);
 }
 
+// TODO!
 BOOL	midiSongAddKeySig(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, tMIDI_KEYSIG iKey) {
   static BYTE tmp[] = {msgMetaEvent, metaKeySig, 0x02, 0, 0};
 
@@ -697,6 +674,7 @@ BOOL	midiSongAddKeySig(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, tMI
   return midiTrackAddRaw(pMF, pMFembedded, iTrack, sizeof(tmp), tmp, FALSE, 0);
 }
 
+// TODO!
 BOOL	midiSongAddTempo(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int iTempo) {
   static BYTE tmp[] = {msgMetaEvent, metaSetTempo, 0x03, 0,0,0};
   int us;	/* micro-seconds per qn */
@@ -712,6 +690,7 @@ BOOL	midiSongAddTempo(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int 
   return midiTrackAddRaw(pMF, pMFembedded, iTrack, sizeof(tmp), tmp, FALSE, 0);
 }
 
+// TODO!
 BOOL	midiSongAddMIDIPort(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int iPort) {
 static BYTE tmp[] = {msgMetaEvent, metaMIDIPort, 1, 0};
 
@@ -722,6 +701,7 @@ static BYTE tmp[] = {msgMetaEvent, metaMIDIPort, 1, 0};
   return midiTrackAddRaw(pMF, pMFembedded, iTrack, sizeof(tmp), tmp, FALSE, 0);
 }
 
+// TODO!
 BOOL	midiSongAddEndSequence(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack) {
   static BYTE tmp[] = {msgMetaEvent, metaEndSequence, 0};
 
@@ -736,6 +716,8 @@ BOOL	midiSongAddEndSequence(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack
 /*
 ** midiTrack* Functions
 */
+
+// TODO!
 BOOL	midiTrackAddRaw(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int data_sz, const BYTE *pData, BOOL bMovePtr, int dt) {
   MIDI_FILE_TRACK *pTrk;
   BYTE *ptr;
@@ -764,7 +746,7 @@ BOOL	midiTrackAddRaw(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int d
 	return TRUE;
 }
 
-
+// TODO!
 BOOL	midiTrackIncTime(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int iDeltaTime, BOOL bOverridePPQN) {
   DWORD will_end_at;
 
@@ -780,6 +762,8 @@ BOOL	midiTrackIncTime(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int 
 	return TRUE;
 }
 
+
+// TODO!
 BOOL	midiTrackAddText(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, tMIDI_TEXT iType, const char *pTxt) {
   BYTE *ptr;
   int sz;
@@ -802,22 +786,27 @@ BOOL	midiTrackAddText(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, tMID
     return FALSE;
 }
 
+// ok!
 BOOL	midiTrackSetKeyPressure(MIDI_FILE *pMF, MIDI_FILE* pMFembedded, int iTrack, int iNote, int iAftertouch) {
   return midiTrackAddMsg(pMF, pMFembedded, iTrack, msgNoteKeyPressure, iNote, iAftertouch);
 }
 
+// ok!
 BOOL	midiTrackAddControlChange(MIDI_FILE *pMF, MIDI_FILE* pMFembedded, int iTrack, tMIDI_CC iCCType, int iParam) {
   return midiTrackAddMsg(pMF, pMFembedded, iTrack, msgControlChange, iCCType, iParam);
 }
 
+// ok!
 BOOL	midiTrackAddProgramChange(MIDI_FILE *pMF, MIDI_FILE* pMFembedded, int iTrack, int iInstrPatch) {
   return midiTrackAddMsg(pMF, pMFembedded, iTrack, msgSetProgram, iInstrPatch, 0);
 }
 
+// ok!
 BOOL	midiTrackChangeKeyPressure(MIDI_FILE *pMF, MIDI_FILE* pMFembedded, int iTrack, int iDeltaPressure) {
   return midiTrackAddMsg(pMF, pMFembedded, iTrack, msgChangePressure, iDeltaPressure & 0x7f, 0);
 }
 
+// ok!
 BOOL	midiTrackSetPitchWheel(MIDI_FILE *pMF, MIDI_FILE* pMFembedded, int iTrack, int iWheelPos) {
   WORD wheel = (WORD)iWheelPos;
 
@@ -826,6 +815,7 @@ BOOL	midiTrackSetPitchWheel(MIDI_FILE *pMF, MIDI_FILE* pMFembedded, int iTrack, 
   return midiTrackAddMsg(pMF, pMFembedded, iTrack, msgSetPitchWheel, wheel & 0x7f, (wheel >> 7) & 0x7f);
 }
 
+// TODO!
 BOOL	midiTrackAddMsg(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, tMIDI_MSG iMsg, int iParam1, int iParam2) {
   BYTE *ptr;
   BYTE data[3];
@@ -860,6 +850,7 @@ BOOL	midiTrackAddMsg(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, tMIDI
   return midiTrackAddRaw(pMF, pMFembedded, iTrack, sz, data, FALSE, 0);
 }
 
+// TODO!
 BOOL	midiTrackAddNote(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int iNote, int iLength, int iVol, BOOL bAutoInc, BOOL bOverrideLength) {
   MIDI_FILE_TRACK *pTrk;
   BYTE *ptr;
@@ -907,6 +898,7 @@ BOOL	midiTrackAddNote(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int 
 	return TRUE;
 }
 
+// TODO!
 BOOL	midiTrackAddRest(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int iLength, BOOL bOverridePPQN) {
 	_VAR_CAST;
 	if (!IsFilePtrValid(pMF))				return FALSE;
@@ -916,6 +908,7 @@ BOOL	midiTrackAddRest(MIDI_FILE *_pMF, MIDI_FILE* _pMFembedded, int iTrack, int 
   return midiTrackIncTime(pMF, pMFembedded, iTrack, iLength, bOverridePPQN);
 }
 
+// TODO!
 int		midiTrackGetEndPos(MIDI_FILE *_pMF, MIDI_FILE *_pMFembedded, int iTrack) {
 	_VAR_CAST;
 	if (!IsFilePtrValid(pMF))				return FALSE;
@@ -965,6 +958,7 @@ static BYTE* _midiReadVarLen(BYTE* ptr, _MIDI_FILE* pMFembedded, DWORD* ptrNew, 
   return(ptr);
 }
 
+// looks ok!
 static BOOL _midiReadTrackCopyData(MIDI_MSG* pMsg, _MIDI_FILE* pMFembedded, MIDI_MSG* pMsgEmbedded, BYTE* ptr, DWORD ptrEmbedded, DWORD sz, size_t* szEmbedded, BOOL bCopyPtrData) {
   // standard version
 	if (sz > pMsg->data_sz) {
@@ -989,11 +983,13 @@ static BOOL _midiReadTrackCopyData(MIDI_MSG* pMsg, _MIDI_FILE* pMFembedded, MIDI
 	return TRUE;
 }
 
+// TODO!
 int midiReadGetNumTracks(const MIDI_FILE *_pMF, MIDI_FILE *_pMFembedded) {
 	_VAR_CAST;
 	return pMF->Header.iNumTracks;
 }
 
+// looks ok!
 BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int iTrack, MIDI_MSG* pMsg, MIDI_MSG* pMsgEmbedded, BOOL embedded) {
   MIDI_FILE_TRACK *pTrack;
   MIDI_FILE_TRACK *pTrackNew;
@@ -1339,12 +1335,14 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
   return TRUE;
 }
 
+// ok!
 void midiReadInitMessage(MIDI_MSG *pMsg) {
 	pMsg->data = NULL;
 	pMsg->data_sz = 0;
 	pMsg->bImpliedMsg = FALSE;
 }
 
+// not needed.
 void midiReadFreeMessage(MIDI_MSG *pMsg) {
 	if (pMsg->data)	free((void *)pMsg->data);
 	pMsg->data = NULL;

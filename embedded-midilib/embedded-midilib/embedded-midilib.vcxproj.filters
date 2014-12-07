@@ -18,13 +18,13 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\mididump.c">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\midifile.c">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="..\..\midiutil.c">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\mididump.c">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
