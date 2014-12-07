@@ -31,6 +31,9 @@
 #include "midifile.h"
 #include "midiutil.h"
 
+#define DEFAULT_BPM 120; // If no tempo is define, 120 beats per minute is assumed in MIDI standard.
+
+
 void HexList(BYTE *pData, int iNumBytes)
 {
 int i;
@@ -56,7 +59,7 @@ void DumpEventList(const char *pFilename)
 
 		for(i=0;i<iNum;i++) {
 			printf("# Track %d\n", i);
-			while(midiReadGetNextMessage(mf, mfEmbedded, i, &msg, TRUE)) {
+			while(midiReadGetNextMessage(mf, mfEmbedded, i, &msg, FALSE)) {
 				printf(" %.6ld ", msg.dwAbsPos);
 				if (msg.bImpliedMsg)
 					{ ev = msg.iImpliedMsg; }

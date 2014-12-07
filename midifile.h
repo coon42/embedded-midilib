@@ -62,6 +62,9 @@ typedef int					BOOL;
 #define MAX_MIDI_TRACKS			256
 #define MAX_TRACK_POLYPHONY		64
 
+// Don't change this!
+#define MICROSECONDS_PER_MINUTE 60000000L
+
 /*
 ** MIDI structures, accessibly externably
 */
