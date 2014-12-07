@@ -50,7 +50,7 @@ void DumpEventList(const char *pFilename)
   int ev;
 
 	if (mf) {
-		MIDI_MSG msg;
+		MIDI_MSG msg, msgEmbedded;
 		int i, iNum;
 		unsigned int j;
 
@@ -59,7 +59,7 @@ void DumpEventList(const char *pFilename)
 
 		for(i=0;i<iNum;i++) {
 			printf("# Track %d\n", i);
-			while(midiReadGetNextMessage(mf, mfEmbedded, i, &msg, FALSE)) {
+			while(midiReadGetNextMessage(mf, mfEmbedded, i, &msg, &msgEmbedded, FALSE)) {
 				printf(" %.6ld ", msg.dwAbsPos);
 				if (msg.bImpliedMsg)
 					{ ev = msg.iImpliedMsg; }

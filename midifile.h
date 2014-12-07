@@ -200,7 +200,7 @@ BOOL		midiTrackGetEndPos(MIDI_FILE *pMF, MIDI_FILE* _pMFembedded, int iTrack);
 ** midiRead* Prototypes
 */
 int			midiReadGetNumTracks(const MIDI_FILE *pMF, MIDI_FILE* _pMFembedded);
-BOOL		midiReadGetNextMessage(const MIDI_FILE *pMF, MIDI_FILE* _pMFembedded, int iTrack, MIDI_MSG *pMsg, BOOL embedded);
+BOOL		midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int iTrack, MIDI_MSG* pMsg, MIDI_MSG* pMsgEmbedded, BOOL embedded);
 void		midiReadInitMessage(MIDI_MSG *pMsg);
 void		midiReadFreeMessage(MIDI_MSG *pMsg);
 
