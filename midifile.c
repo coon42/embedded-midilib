@@ -1070,57 +1070,119 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
     // -------------------------
     // -    Channel Events     -
     // -------------------------
-    case	msgNoteOff: // 0x08 'Note Off'
+    case	msgNoteOff: { // 0x08 'Note Off'
       // standard
       pMsg->MsgData.NoteOff.iChannel = pMsg->iLastMsgChnl;
       pMsg->MsgData.NoteOff.iNote = *(pMsgDataPtr);
       pMsg->iMsgSize = 3;
 
       // embedded
+      BYTE tmpNote = 0;
       pMsgEmbedded->MsgData.NoteOff.iChannel = pMsgEmbedded->iLastMsgChnl;
-      readDwordFromFile(pMFembedded->pFile, &pMsgEmbedded->MsgData.NoteOff.iNote, pMsgDataPtrEmbedded);
+      readByteFromFile(pMFembedded->pFile, &tmpNote, pMsgDataPtrEmbedded);
+      pMsgEmbedded->MsgData.NoteOff.iNote = tmpNote;
       pMsgEmbedded->iMsgSize = 3;
       break;
-      
-		case	msgNoteOn: // 0x09 'Note On'
+    }
+
+		case	msgNoteOn: { // 0x09 'Note On'
       pMsg->MsgData.NoteOn.iChannel = pMsg->iLastMsgChnl;
       pMsg->MsgData.NoteOn.iNote = *(pMsgDataPtr);
       pMsg->MsgData.NoteOn.iVolume = *(pMsgDataPtr+1);
       pMsg->iMsgSize = 3;
+
+      // embedded
+      BYTE tmpNote = 0;
+      BYTE tmpVolume = 0;
+      pMsgEmbedded->MsgData.NoteOn.iChannel = pMsgEmbedded->iLastMsgChnl;
+      readByteFromFile(pMFembedded->pFile, &tmpNote, pMsgDataPtrEmbedded);
+      readByteFromFile(pMFembedded->pFile, &tmpVolume, pMsgDataPtrEmbedded + 1);
+      pMsgEmbedded->MsgData.NoteOn.iNote = tmpNote;
+      pMsgEmbedded->MsgData.NoteOn.iVolume = tmpVolume;
+      pMsgEmbedded->iMsgSize = 3;
       break;
+    }
       
-		case	msgNoteKeyPressure: // 0x0A 'Note Aftertouch'
+		case	msgNoteKeyPressure: { // 0x0A 'Note Aftertouch'
 			pMsg->MsgData.NoteKeyPressure.iChannel = pMsg->iLastMsgChnl;
 			pMsg->MsgData.NoteKeyPressure.iNote = *(pMsgDataPtr);
 			pMsg->MsgData.NoteKeyPressure.iPressure = *(pMsgDataPtr+1);
 			pMsg->iMsgSize = 3;
-			break;
 
-		case	msgSetParameter: // // 0x0B 'Controller'
+      // embedded
+      BYTE tmpNote = 0;
+      BYTE tmpPressure = 0;
+      pMsgEmbedded->MsgData.NoteOn.iChannel = pMsgEmbedded->iLastMsgChnl;
+      readByteFromFile(pMFembedded->pFile, &tmpNote, pMsgDataPtrEmbedded);
+      readByteFromFile(pMFembedded->pFile, &tmpPressure, pMsgDataPtrEmbedded + 1);
+      pMsgEmbedded->MsgData.NoteKeyPressure.iNote = tmpNote;
+      pMsgEmbedded->MsgData.NoteKeyPressure.iPressure = tmpPressure;
+      pMsgEmbedded->iMsgSize = 3;
+			break;
+    }
+
+		case	msgSetParameter: { // // 0x0B 'Controller'
 			pMsg->MsgData.NoteParameter.iChannel = pMsg->iLastMsgChnl;
 			pMsg->MsgData.NoteParameter.iControl = (tMIDI_CC)*(pMsgDataPtr);
 			pMsg->MsgData.NoteParameter.iParam = *(pMsgDataPtr+1);
 			pMsg->iMsgSize = 3;
-			break;
 
-		case	msgSetProgram: // 0x0C 'Program Change'
+      // embedded
+      BYTE tmpControl = 0;
+      BYTE tmpParam = 0;
+      pMsgEmbedded->MsgData.NoteOn.iChannel = pMsgEmbedded->iLastMsgChnl;
+      readByteFromFile(pMFembedded->pFile, &tmpControl, pMsgDataPtrEmbedded);
+      readByteFromFile(pMFembedded->pFile, &tmpParam, pMsgDataPtrEmbedded + 1);
+      pMsgEmbedded->MsgData.NoteParameter.iControl = tmpControl;
+      pMsgEmbedded->MsgData.NoteParameter.iParam = tmpParam;
+      pMsgEmbedded->iMsgSize = 3;
+			break;
+    }
+
+		case	msgSetProgram: { // 0x0C 'Program Change'
 			pMsg->MsgData.ChangeProgram.iChannel = pMsg->iLastMsgChnl;
 			pMsg->MsgData.ChangeProgram.iProgram = *(pMsgDataPtr);
 			pMsg->iMsgSize = 2;
-			break;
 
-		case	msgChangePressure: // 0x0D 'Channel Aftertouch'
+      // embedded
+      BYTE tmpProgram = 0;
+      pMsgEmbedded->MsgData.ChangeProgram.iChannel = pMsgEmbedded->iLastMsgChnl;
+      readByteFromFile(pMFembedded->pFile, &tmpProgram, pMsgDataPtrEmbedded);
+      pMsgEmbedded->MsgData.ChangeProgram.iProgram = tmpProgram;
+      pMsgEmbedded->iMsgSize = 2;
+			break;
+    }
+
+		case	msgChangePressure: { // 0x0D 'Channel Aftertouch'
 			pMsg->MsgData.ChangePressure.iChannel = pMsg->iLastMsgChnl;
 			pMsg->MsgData.ChangePressure.iPressure = *(pMsgDataPtr);
 			pMsg->iMsgSize = 2;
-			break;
 
-		case	msgSetPitchWheel: // 0x0F 'Pitch Bend'
+      // embedded
+      BYTE tmpPressure = 0;
+      pMsgEmbedded->MsgData.ChangeProgram.iChannel = pMsgEmbedded->iLastMsgChnl;
+      readByteFromFile(pMFembedded->pFile, &tmpPressure, pMsgDataPtrEmbedded);
+      pMsgEmbedded->MsgData.ChangeProgram.iProgram = tmpPressure;
+      pMsgEmbedded->iMsgSize = 2;
+			break;
+    }
+
+		case	msgSetPitchWheel: { // 0x0F 'Pitch Bend'
 			pMsg->MsgData.PitchWheel.iChannel = pMsg->iLastMsgChnl;
 			pMsg->MsgData.PitchWheel.iPitch = *(pMsgDataPtr) | (*(pMsgDataPtr+1) << 7);
 			pMsg->MsgData.PitchWheel.iPitch -= MIDI_WHEEL_CENTRE;
 			pMsg->iMsgSize = 3;
+
+      // embedded (needs to be checked!)
+      pMsgEmbedded->MsgData.NoteOn.iChannel = pMsgEmbedded->iLastMsgChnl;
+      BYTE tmpPitchLow = 0;
+      BYTE tmpPitchHigh = 0;
+      readByteFromFile(pMFembedded->pFile, &tmpPitchLow, pMsgDataPtrEmbedded);
+      readByteFromFile(pMFembedded->pFile, &tmpPitchHigh, pMsgDataPtrEmbedded + 1);
+      pMsgEmbedded->MsgData.PitchWheel.iPitch = tmpPitchLow | (tmpPitchHigh << 7);
+      pMsgEmbedded->iMsgSize = 3;
 			break;
+    }
 
     // -------------------------
     // -    Meta Events     -
@@ -1236,7 +1298,9 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 	/*
 	** Standard MIDI messages use a common copy routine
 	*/
-	pMsg->bImpliedMsg = FALSE;
+
+  // standard version
+	pMsg->bImpliedMsg = FALSE; // obsolete
 	if ((pMsg->iType & 0xf0) != 0xf0) {
 		if (*pTrack->ptr & 0x80) {
     }
@@ -1246,9 +1310,29 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 			pMsg->iMsgSize--;
     }
 
+    // The next line is done in embedded part!
 		//_midiReadTrackCopyData(pMsg, pMFembedded, pMsgEmbedded, pTrack->ptr, pTrackNew->ptrNew, pMsg->iMsgSize, &pMsgEmbedded->iMsgSize, TRUE);
-		pTrack->ptr += pMsg->iMsgSize;
+		pTrack->ptr += pMsg->iMsgSize; // obsolete
   }
+
+  // embedded (needs to be checked!)
+  pMsgEmbedded->bImpliedMsg = FALSE;
+  if ((pMsgEmbedded->iType & 0xf0) != 0xf0) {
+    BYTE tmpVal = 0;
+    readByteFromFile(pMFembedded->pFile, &tmpVal, pTrackNew->ptrNew);
+    if (tmpVal & 0x80) {
+    }
+    else {
+      pMsgEmbedded->bImpliedMsg = TRUE;
+      pMsgEmbedded->iImpliedMsg = pMsg->iLastMsgType;
+      pMsgEmbedded->iMsgSize--;
+    }
+
+    _midiReadTrackCopyData(pMsg, pMFembedded, pMsgEmbedded, pTrack->ptr, pTrackNew->ptrNew, pMsg->iMsgSize, &pMsgEmbedded->iMsgSize, TRUE);
+    pTrackNew->ptrNew += pMsgEmbedded->iMsgSize;
+  }
+
+
   return TRUE;
 }
 
