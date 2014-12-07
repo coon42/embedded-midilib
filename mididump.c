@@ -100,7 +100,7 @@ void playMidiFile(const char *pFilename)
 
       for (i = 0; i < iNum; i++)
       {
-        while (current_midi_tick == pMFembedded->Track[i].pos && pMFembedded->Track[i].ptrNew != pMFembedded->Track[i].pEndNew)
+        while (current_midi_tick == pMFembedded->Track[i].pos && pMFembedded->Track[i].ptrNew < pMFembedded->Track[i].pEndNew)
         {
           printf("[Track: %d]", i);
 
