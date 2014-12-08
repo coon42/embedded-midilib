@@ -160,9 +160,14 @@ void playMidiFile(const char *pFilename)
             printf("(%d) %s", msg[i].MsgData.ChangePressure.iChannel, str);
             break;
           case	msgSetPitchWheel: {
-                                    printf("(%d) %d", msg[i].MsgData.PitchWheel.iChannel,
-                                      msg[i].MsgData.PitchWheel.iPitch);
-                                    break;
+            WORD pitchMsgPayload = (msg[i].MsgData.PitchWheel.iPitch + 8192) << 1;
+            BYTE pitchLow  = ((BYTE*)&pitchMsgPayload)[0];
+            BYTE pitchHigh = ((BYTE*)&pitchMsgPayload)[1];
+            MidiOutMessage(hMidiOut, msgSetPitchWheel, i + 1, pitchLow, pitchHigh);
+
+            printf("(%d) %d", msg[i].MsgData.PitchWheel.iChannel,
+              msg[i].MsgData.PitchWheel.iPitch);
+            break;
           }
 
           case	msgMetaEvent:
@@ -267,8 +272,11 @@ void playMidiFile(const char *pFilename)
       // wait microseconds per tick here
       t2 = clock() + ticks_to_wait * ms_per_tick;
 
-      while (clock() < t2)
+      time_t t1 = clock();
+      while (t1 < t2)
       {
+        t1 = clock();
+        t1 = t1;
         // just wait here...
       }
 
