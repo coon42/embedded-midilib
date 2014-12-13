@@ -472,6 +472,7 @@ BOOL muGetMIDIMsgName(char *pName, tMIDI_MSG iMsg)
 				break;
 
 		default:
+        strcpy_s(pName, 32, "Unknown");
 				return FALSE;
 		}
 	return TRUE;

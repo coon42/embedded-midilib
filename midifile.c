@@ -1209,9 +1209,13 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 
 		  /* TODO: Place the META data it in a neat structure also for embedded! */
 		  switch(pMsg->MsgData.MetaEvent.iType) {
-        case	metaSequenceNumber:
-					  pMsg->MsgData.MetaEvent.Data.iSequenceNumber = *(pTrack->ptr + 0);
-					  break;
+        case	metaSequenceNumber: {
+					    pMsg->MsgData.MetaEvent.Data.iSequenceNumber = *(pTrack->ptr + 0);
+              BYTE tmpSequenceNumber;
+              readByteFromFile(pMFembedded->pFile, &tmpSequenceNumber, pTrackNew->ptrNew + 0);
+              pMsg->MsgData.MetaEvent.Data.iSequenceNumber = tmpSequenceNumber;
+					    break;
+            }
 			 
 			  case	metaTextEvent:
 			  case	metaCopyright:
@@ -1227,6 +1231,11 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 
         case	metaMIDIPort:
           pMsg->MsgData.MetaEvent.Data.iMIDIPort = *(pTrack->ptr + 0);
+
+          // embedded
+          BYTE tmpMIDIPort;
+          readByteFromFile(pMFembedded->pFile, &tmpMIDIPort, pTrackNew->ptrNew + 0);
+          pMsgEmbedded->MsgData.MetaEvent.Data.iMIDIPort = tmpMIDIPort;
           break;
 			  case	metaEndSequence:
 					  /* NO DATA */
@@ -1278,10 +1287,13 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
     // ----------------------------------
 		case	msgSysEx1:
 		case	msgSysEx2:
-		  bptr = pTrack->ptr;
-		  pTrack->ptr = _midiReadVarLen(pTrack->ptr+1, pMFembedded, &pTrack->ptrNew, &pMsg->iMsgSize, &pMsgEmbedded->iMsgSize);
-		  sz = (pTrack->ptr-bptr)+pMsg->iMsgSize;
-							
+		  bptr = pTrack->ptr; // obsolete
+      bptrEmbedded = pTrackNew->ptrNew;
+      pTrackNew->ptrNew += 1; 
+		  pTrack->ptr = _midiReadVarLen(pTrack->ptr + 1, pMFembedded, &pTrackNew->ptrNew, &pMsg->iMsgSize, &pMsgEmbedded->iMsgSize);
+		  sz = (pTrack->ptr - bptr) + pMsg->iMsgSize; // obsolete
+      szEmbedded = (pTrackNew->ptrNew - bptrEmbedded) + pMsgEmbedded->iMsgSize;
+
 		  if (_midiReadTrackCopyData(pMsg, pMFembedded, pMsgEmbedded, pTrack->ptr, pTrackNew->ptrNew, sz, &szEmbedded, FALSE) == FALSE)
 			  return FALSE;
 
@@ -1291,6 +1303,14 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 		  pMsg->iMsgSize = sz;
 		  pMsg->MsgData.SysEx.pData = pMsg->data;
 		  pMsg->MsgData.SysEx.iSize = sz;
+
+      
+      /* Embedded: Now copy the data */
+      readChunkFromFile(pMFembedded->pFile, pMsgEmbedded->dataEmbedded, bptrEmbedded, szEmbedded);
+      pTrackNew->ptrNew += pMsgEmbedded->iMsgSize;
+      pMsgEmbedded->iMsgSize = szEmbedded;
+      pMsgEmbedded->MsgData.SysEx.pData = pMsg->dataEmbedded;
+      pMsgEmbedded->MsgData.SysEx.iSize = szEmbedded;
 		  break;
   }
 	/*
