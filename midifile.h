@@ -51,7 +51,7 @@ typedef int					BOOL;
 
 
 // Embedded Constants
-#define META_EVENT_MAX_DATA_SIZE 64
+#define META_EVENT_MAX_DATA_SIZE 128 // The meta event size must be at least 6 bytes long, to store: variable 4 byte length, 1 byte event id + 1 byte nullterminator.
 
 
 /*

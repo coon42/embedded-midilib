@@ -1171,7 +1171,7 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 
 		case	msgSetPitchWheel: { // 0x0F 'Pitch Bend'
 			pMsg->MsgData.PitchWheel.iChannel = pMsg->iLastMsgChnl;
-			pMsg->MsgData.PitchWheel.iPitch = *(pMsgDataPtr) | (*(pMsgDataPtr+1) << 7);
+			pMsg->MsgData.PitchWheel.iPitch = *(pMsgDataPtr) | (*(pMsgDataPtr + 1) << 7);
 			pMsg->MsgData.PitchWheel.iPitch -= MIDI_WHEEL_CENTRE;
 			pMsg->iMsgSize = 3;
 
@@ -1182,6 +1182,7 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
       readByteFromFile(pMFembedded->pFile, &tmpPitchLow, pMsgDataPtrEmbedded);
       readByteFromFile(pMFembedded->pFile, &tmpPitchHigh, pMsgDataPtrEmbedded + 1);
       pMsgEmbedded->MsgData.PitchWheel.iPitch = tmpPitchLow | (tmpPitchHigh << 7);
+      pMsgEmbedded->MsgData.PitchWheel.iPitch -= MIDI_WHEEL_CENTRE;
       pMsgEmbedded->iMsgSize = 3;
 			break;
     }
@@ -1231,8 +1232,6 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 			  case	metaLyric:
 			  case	metaMarker:
 			  case	metaCuePoint:
-					  
-					  //pMsg->MsgData.MetaEvent.Data.Text.pData = pTrack->ptr;
             pMsg->MsgData.MetaEvent.Data.Text.pData = pMsg->data + 3;
             pMsg->MsgData.MetaEvent.Data.Text.strLen = sz - 3;
             pMsgEmbedded->MsgData.MetaEvent.Data.Text.strLen = szEmbedded - 3;
@@ -1256,7 +1255,10 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 					  break;
 			  case	metaSetTempo: {
 					    DWORD us = ((*(pTrack->ptr+0))<<16)|((*(pTrack->ptr+1))<<8)|(*(pTrack->ptr+2));
-              pMsg->MsgData.MetaEvent.Data.Tempo.iBPM = MICROSECONDS_PER_MINUTE / us;
+              pMsg->MsgData.MetaEvent.Data.Tempo.iBPM = MICROSECONDS_PER_MINUTE / us; // obsolete
+
+              // embedded
+              pMsgEmbedded->MsgData.MetaEvent.Data.Tempo.iBPM = MICROSECONDS_PER_MINUTE / us;
 					  }
 					  break;
 			  case	metaSMPTEOffset:
@@ -1364,7 +1366,6 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
     pTrackNew->ptrNew += pMsgEmbedded->iMsgSize;
     pTrack->ptr += pMsg->iMsgSize; // obsolete
   }
-
 
   return TRUE;
 }

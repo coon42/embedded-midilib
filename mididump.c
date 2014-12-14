@@ -138,7 +138,7 @@ void playMidiFile(const char *pFilename) {
 
     for (i = 0; i< iNumTracks; i++) {
       pMFembedded->Track[i].iDefaultChannel = 0;
-      midiReadInitMessage(&msg[i]);
+      midiReadInitMessage(&msgEmbedded[i]);
       midiReadGetNextMessage(pMF, pMFembedded, i, &msg[i], &msgEmbedded[i], TRUE);
     }
 
@@ -153,93 +153,93 @@ void playMidiFile(const char *pFilename) {
       for (i = 0; i < iNumTracks; i++) {
         while (current_midi_tick == pMFembedded->Track[i].pos && pMFembedded->Track[i].ptrNew < pMFembedded->Track[i].pEndNew) {
           printf("[Track: %d]", i);
-          ev = msg[i].bImpliedMsg ? msg[i].iImpliedMsg : msg[i].iType;
+          ev = msgEmbedded[i].bImpliedMsg ? msgEmbedded[i].iImpliedMsg : msgEmbedded[i].iType;
 
-          printf(" %06d ", msg[i].dwAbsPos);
+          printf(" %06d ", msgEmbedded[i].dwAbsPos);
           if (muGetMIDIMsgName(str, ev))
             printf("%s  ", str);
 
           switch (ev) {
             case	msgNoteOff:
-              onNoteOff(hMidiOut, msg[i].MsgData.NoteOff.iChannel, msg[i].MsgData.NoteOff.iNote);
+              onNoteOff(hMidiOut, msgEmbedded[i].MsgData.NoteOff.iChannel, msgEmbedded[i].MsgData.NoteOff.iNote);
               break;
             case	msgNoteOn:
-              onNoteOn(hMidiOut, msg[i].MsgData.NoteOn.iChannel, msg[i].MsgData.NoteOn.iNote, msg[i].MsgData.NoteOn.iVolume);
+              onNoteOn(hMidiOut, msgEmbedded[i].MsgData.NoteOn.iChannel, msgEmbedded[i].MsgData.NoteOn.iNote, msgEmbedded[i].MsgData.NoteOn.iVolume);
               break;
             case	msgNoteKeyPressure:
-              onNoteKeyPressure(hMidiOut, msg[i].MsgData.NoteKeyPressure.iChannel, msg[i].MsgData.NoteKeyPressure.iNote, msg[i].MsgData.NoteKeyPressure.iPressure);
+              onNoteKeyPressure(hMidiOut, msgEmbedded[i].MsgData.NoteKeyPressure.iChannel, msgEmbedded[i].MsgData.NoteKeyPressure.iNote, msgEmbedded[i].MsgData.NoteKeyPressure.iPressure);
               break;
             case	msgSetParameter:
-              onSetParameter(hMidiOut, msg[i].MsgData.NoteParameter.iChannel, msg[i].MsgData.NoteParameter.iControl, msg[i].MsgData.NoteParameter.iParam);
+              onSetParameter(hMidiOut, msgEmbedded[i].MsgData.NoteParameter.iChannel, msgEmbedded[i].MsgData.NoteParameter.iControl, msgEmbedded[i].MsgData.NoteParameter.iParam);
               break;
             case	msgSetProgram:
-              onSetProgram(hMidiOut, msg[i].MsgData.ChangeProgram.iChannel, msg[i].MsgData.ChangeProgram.iProgram);
+              onSetProgram(hMidiOut, msgEmbedded[i].MsgData.ChangeProgram.iChannel, msgEmbedded[i].MsgData.ChangeProgram.iProgram);
               break;
             case	msgChangePressure:
-              onChangePressure(hMidiOut, msg[i].MsgData.ChangePressure.iChannel, msg[i].MsgData.ChangePressure.iPressure);
+              onChangePressure(hMidiOut, msgEmbedded[i].MsgData.ChangePressure.iChannel, msgEmbedded[i].MsgData.ChangePressure.iPressure);
               break;
             case	msgSetPitchWheel:
-              onSetPitchWheel(hMidiOut, msg[i].MsgData.PitchWheel.iChannel, msg[i].MsgData.PitchWheel.iPitch + 8192);
+              onSetPitchWheel(hMidiOut, msgEmbedded[i].MsgData.PitchWheel.iChannel, msgEmbedded[i].MsgData.PitchWheel.iPitch + 8192);
               break;
             case	msgMetaEvent:
               printf("---- ");
-              switch (msg[i].MsgData.MetaEvent.iType) {
+              switch (msgEmbedded[i].MsgData.MetaEvent.iType) {
               case	metaMIDIPort:
-                printf("MIDI Port = %d", msg[i].MsgData.MetaEvent.Data.iMIDIPort);
+                printf("MIDI Port = %d", msgEmbedded[i].MsgData.MetaEvent.Data.iMIDIPort);
                 break;
               case	metaSequenceNumber:
-                printf("Sequence Number = %d", msg[i].MsgData.MetaEvent.Data.iSequenceNumber);
+                printf("Sequence Number = %d", msgEmbedded[i].MsgData.MetaEvent.Data.iSequenceNumber);
                 break;
               case	metaTextEvent:
-                printf("Text = '%s'",msg[i].MsgData.MetaEvent.Data.Text.pData);
+                printf("Text = '%s'", msgEmbedded[i].MsgData.MetaEvent.Data.Text.pData);
                 break;
               case	metaCopyright:
-                printf("Copyright = '%s'", msg[i].MsgData.MetaEvent.Data.Text.pData);
+                printf("Copyright = '%s'", msgEmbedded[i].MsgData.MetaEvent.Data.Text.pData);
                 break;
               case	metaTrackName:
-                printf("Track name = '%s'", msg[i].MsgData.MetaEvent.Data.Text.pData);
+                printf("Track name = '%s'", msgEmbedded[i].MsgData.MetaEvent.Data.Text.pData);
                 break;
               case	metaInstrument:
-                printf("Instrument = '%s'", msg[i].MsgData.MetaEvent.Data.Text.pData);
+                printf("Instrument = '%s'", msgEmbedded[i].MsgData.MetaEvent.Data.Text.pData);
                 break;
               case	metaLyric:
-                printf("Lyric = '%s'",msg[i].MsgData.MetaEvent.Data.Text.pData);
+                printf("Lyric = '%s'", msgEmbedded[i].MsgData.MetaEvent.Data.Text.pData);
                 break;
               case	metaMarker:
-                printf("Marker = '%s'", msg[i].MsgData.MetaEvent.Data.Text.pData);
+                printf("Marker = '%s'", msgEmbedded[i].MsgData.MetaEvent.Data.Text.pData);
                 break;
               case	metaCuePoint:
-                printf("Cue point = '%s'", msg[i].MsgData.MetaEvent.Data.Text.pData);
+                printf("Cue point = '%s'", msgEmbedded[i].MsgData.MetaEvent.Data.Text.pData);
                 break;
               case	metaEndSequence:
                 printf("End Sequence");
                 break;
               case	metaSetTempo:
-                bpm = msg[i].MsgData.MetaEvent.Data.Tempo.iBPM;
+                bpm = msgEmbedded[i].MsgData.MetaEvent.Data.Tempo.iBPM;
                 ms_per_tick = 60000.0f / (bpm * pMFembedded->Header.PPQN);
-                printf("Tempo = %d", msg[i].MsgData.MetaEvent.Data.Tempo.iBPM);
+                printf("Tempo = %d", msgEmbedded[i].MsgData.MetaEvent.Data.Tempo.iBPM);
                 break;
               case	metaSMPTEOffset:
                 printf("SMPTE offset = %d:%d:%d.%d %d",
-                  msg[i].MsgData.MetaEvent.Data.SMPTE.iHours,
-                  msg[i].MsgData.MetaEvent.Data.SMPTE.iMins,
-                  msg[i].MsgData.MetaEvent.Data.SMPTE.iSecs,
-                  msg[i].MsgData.MetaEvent.Data.SMPTE.iFrames,
-                  msg[i].MsgData.MetaEvent.Data.SMPTE.iFF
+                  msgEmbedded[i].MsgData.MetaEvent.Data.SMPTE.iHours,
+                  msgEmbedded[i].MsgData.MetaEvent.Data.SMPTE.iMins,
+                  msgEmbedded[i].MsgData.MetaEvent.Data.SMPTE.iSecs,
+                  msgEmbedded[i].MsgData.MetaEvent.Data.SMPTE.iFrames,
+                  msgEmbedded[i].MsgData.MetaEvent.Data.SMPTE.iFF
                   );
                 break;
               case	metaTimeSig:
-                printf("Time sig = %d/%d", msg[i].MsgData.MetaEvent.Data.TimeSig.iNom,
-                  msg[i].MsgData.MetaEvent.Data.TimeSig.iDenom / MIDI_NOTE_CROCHET);
+                printf("Time sig = %d/%d", msgEmbedded[i].MsgData.MetaEvent.Data.TimeSig.iNom,
+                  msgEmbedded[i].MsgData.MetaEvent.Data.TimeSig.iDenom / MIDI_NOTE_CROCHET);
                 break;
               case	metaKeySig:
-                if (muGetKeySigName(str, msg[i].MsgData.MetaEvent.Data.KeySig.iKey))
+                if (muGetKeySigName(str, msgEmbedded[i].MsgData.MetaEvent.Data.KeySig.iKey))
                   printf("Key sig = %s", str);
                 break;
 
               case	metaSequencerSpecific:
                 printf("Sequencer specific = ");
-                HexList(msg[i].MsgData.MetaEvent.Data.Sequencer.pData, msg[i].MsgData.MetaEvent.Data.Sequencer.iSize); // ok
+                HexList(msgEmbedded[i].MsgData.MetaEvent.Data.Sequencer.pData, msgEmbedded[i].MsgData.MetaEvent.Data.Sequencer.iSize); // ok
                 printf("\r\n");
                 break;
               }
@@ -247,12 +247,12 @@ void playMidiFile(const char *pFilename) {
 
             case	msgSysEx1:
             case	msgSysEx2:
-              HexList(msg[i].MsgData.SysEx.pData, msg[i].MsgData.SysEx.iSize); // ok
+              HexList(msgEmbedded[i].MsgData.SysEx.pData, msgEmbedded[i].MsgData.SysEx.iSize); // ok
               printf("\r\n");
               break;
             }
 
-          if (ev == msgSysEx1 || ev == msgSysEx1 || (ev == msgMetaEvent && msg[i].MsgData.MetaEvent.iType == metaSequencerSpecific)) {
+          if (ev == msgSysEx1 || ev == msgSysEx1 || (ev == msgMetaEvent && msgEmbedded[i].MsgData.MetaEvent.iType == metaSequencerSpecific)) {
             // Already done a hex dump
           }
           else {
