@@ -134,7 +134,7 @@ typedef struct {
 
 					/* Raw data chunk */
 					BYTE *data;		/* dynamic data block */
-          BYTE dataEmbedded[META_EVENT_MAX_DATA_SIZE]; // constant data block
+          BYTE dataEmbedded[META_EVENT_MAX_DATA_SIZE + 1]; // constant data block (+ 1 byte for nullterminator on text events)
 					DWORD data_sz; // This is the size of the dynamic allocated buffer
           DWORD data_sz_embedded; // This is the real size of meta text data!
 
@@ -172,10 +172,12 @@ typedef struct {
 								} PitchWheel;
 						struct {
 								tMIDI_META	iType;
+                BYTE iSize;
 								union {
 									int					iMIDIPort;
 									int					iSequenceNumber;
 									struct {
+                    int strLen;
 										BYTE			*pData;
 										} Text;
 									struct {

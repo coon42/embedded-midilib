@@ -956,24 +956,27 @@ static BYTE* _midiReadVarLen(BYTE* ptr, _MIDI_FILE* pMFembedded, DWORD* ptrNew, 
   return(ptr);
 }
 
-// looks ok!
+// bug in embedded part!
 static BOOL _midiReadTrackCopyData(MIDI_MSG* pMsg, _MIDI_FILE* pMFembedded, MIDI_MSG* pMsgEmbedded, BYTE* ptr, DWORD ptrEmbedded, DWORD sz, size_t* szEmbedded, BOOL bCopyPtrData) {
   // standard version
 	if (sz > pMsg->data_sz) {
-		pMsg->data = (BYTE *)realloc(pMsg->data, sz);
+		pMsg->data = (BYTE *)realloc(pMsg->data, sz + 1); // + 1 for nullterminator on text events
 		pMsg->data_sz = sz;
   }
   if (!pMsg->data)
     return FALSE;
 
+  // embedded
+  if (*szEmbedded > META_EVENT_MAX_DATA_SIZE) {
+    *szEmbedded = META_EVENT_MAX_DATA_SIZE;
+    printf("\r\n_midiReadTrackCopyData; Warning: Meta data is greater than maximum size! (%d of %d)\r\n", sz, META_EVENT_MAX_DATA_SIZE);
+  }
+  // ---
+
   if (bCopyPtrData && ptr) {
 		memcpy(pMsg->data, ptr, sz);
 
     // embedded part
-    if (*szEmbedded > META_EVENT_MAX_DATA_SIZE) {
-      *szEmbedded = META_EVENT_MAX_DATA_SIZE;
-      printf("\r\n_midiReadTrackCopyData; Warning: Meta data is greater than maximum size! (%d of %d)\r\n", sz, META_EVENT_MAX_DATA_SIZE);
-    }
     readChunkFromFile(pMFembedded->pFile, pMsgEmbedded->dataEmbedded, ptrEmbedded, *szEmbedded);
     pMsgEmbedded->data_sz_embedded = *szEmbedded;
   }
@@ -1228,9 +1231,16 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 			  case	metaLyric:
 			  case	metaMarker:
 			  case	metaCuePoint:
-					  /* TODO - Add NULL terminator ??? */
-					  pMsg->MsgData.MetaEvent.Data.Text.pData = pTrack->ptr;
+					  
+					  //pMsg->MsgData.MetaEvent.Data.Text.pData = pTrack->ptr;
+            pMsg->MsgData.MetaEvent.Data.Text.pData = pMsg->data + 3;
+            pMsg->MsgData.MetaEvent.Data.Text.strLen = sz - 3;
+            pMsgEmbedded->MsgData.MetaEvent.Data.Text.strLen = szEmbedded - 3;
             pMsgEmbedded->MsgData.MetaEvent.Data.Text.pData = pMsgEmbedded->dataEmbedded + 3;
+
+            // Add Null terminator
+            pMsg->MsgData.MetaEvent.Data.Text.pData[pMsg->MsgData.MetaEvent.Data.Text.strLen] = '\0';
+            pMsgEmbedded->MsgData.MetaEvent.Data.Text.pData[pMsgEmbedded->MsgData.MetaEvent.Data.Text.strLen] = '\0';
 					  break;
 
         case	metaMIDIPort:
