@@ -46,20 +46,27 @@ void HexList(BYTE *pData, int iNumBytes)
     printf("%.2x ", pData[i]);
 }
 
+// Routines for simplifying MIDI output
+// ------------------------------------
+
+DWORD MidiOutMessage(HMIDIOUT hMidi, int iStatus, int iChannel, int iData1, int iData2) {
+  DWORD dwMessage = iStatus | iChannel - 1 | (iData1 << 8) | (iData2 << 16);
+  return midiOutShortMsg(hMidi, dwMessage);
+}
 
 // Midi Event handlers
 char noteName[64];
 
 void onNoteOff(HMIDIOUT hMidiOut, int channel, int note) {
   muGetNameFromNote(noteName, note);
-  midiOutShortMsg(hMidiOut, (0 << 16) | (note << 8) | (0x80 + channel - 1)); // note off
+  MidiOutMessage(hMidiOut, msgNoteOff, channel, note, 0);
   printf("(%d) %s", channel, noteName);
 }
 
 void onNoteOn(HMIDIOUT hMidiOut, int channel, int note, int velocity) {
   muGetNameFromNote(noteName, note);
   MidiOutMessage(hMidiOut, msgNoteOn, channel, note, velocity);
-  printf("  (%d) %s %d", channel, noteName, velocity);
+  printf("(%d) %s [%d] %d", channel, noteName, note, velocity);
 }
 
 void onNoteKeyPressure(HMIDIOUT hMidiOut, int channel, int note, int pressure) {
@@ -70,7 +77,8 @@ void onNoteKeyPressure(HMIDIOUT hMidiOut, int channel, int note, int pressure) {
 
 void onSetParameter(HMIDIOUT hMidiOut, int channel, int control, int parameter) {
   muGetControlName(noteName, control);
-  printf("(%d) %s -> %d", channel, parameter);
+  MidiOutMessage(hMidiOut, msgSetParameter, channel, control, parameter);
+  printf("(%d) %s -> %d", channel, noteName, parameter);
 }
 
 void onSetProgram(HMIDIOUT hMidiOut, int channel, int program) {
@@ -86,24 +94,12 @@ void onChangePressure(HMIDIOUT hMidiOut, int channel, int pressure) {
 }
 
 void onSetPitchWheel(HMIDIOUT hMidiOut, int channel, short pitch) {
-  BYTE pitchLow = pitch;
-  BYTE pitchHigh = pitch >> 8;
-
-  MidiOutMessage(hMidiOut, msgSetPitchWheel, channel, pitchLow, pitchHigh);
+  MidiOutMessage(hMidiOut, msgSetPitchWheel, channel, pitch << 1, pitch >> 7);
   printf("(%d) %d", channel, pitch);
 }
 
 void onMetaEvent() {
   // TODO
-}
-
-
-// Routines for simplifying MIDI output
-// ------------------------------------
-
-DWORD MidiOutMessage(HMIDIOUT hMidi, int iStatus, int iChannel, int iData1, int iData2) {
-  DWORD dwMessage = iStatus | iChannel - 1 | (iData1 << 8) | (iData2 << 16);
-  return midiOutShortMsg(hMidi, dwMessage);
 }
 
 void playMidiFile(const char *pFilename) {
@@ -143,7 +139,7 @@ void playMidiFile(const char *pFilename) {
     for (i = 0; i< iNumTracks; i++) {
       pMFembedded->Track[i].iDefaultChannel = 0;
       midiReadInitMessage(&msg[i]);
-      midiReadGetNextMessage(pMF, pMFembedded, i, &msg[i], &msgEmbedded[i], FALSE);
+      midiReadGetNextMessage(pMF, pMFembedded, i, &msg[i], &msgEmbedded[i], TRUE);
     }
 
     printf("Midi Format: %d\r\n", pMF->Header.iVersion);
@@ -151,7 +147,7 @@ void playMidiFile(const char *pFilename) {
     printf("start playing...\r\n");
 
     while (any_track_had_data) {
-      any_track_had_data = 1;
+      any_track_had_data = 0;
       ticks_to_wait = -1;
 
       for (i = 0; i < iNumTracks; i++) {
@@ -163,28 +159,18 @@ void playMidiFile(const char *pFilename) {
           if (muGetMIDIMsgName(str, ev))
             printf("%s  ", str);
 
-          int realChannel = 0;
-          switch (pMFembedded->Header.iVersion) {
-            case 0: realChannel = msg[i].MsgData.NoteOff.iChannel; break;
-            case 1: realChannel = pMFembedded->Track[i].iDefaultChannel; break;
-          }
-
           switch (ev) {
             case	msgNoteOff:
-              onNoteOff(hMidiOut, realChannel, msg[i].MsgData.NoteOff.iNote);
+              onNoteOff(hMidiOut, msg[i].MsgData.NoteOff.iChannel, msg[i].MsgData.NoteOff.iNote);
               break;
             case	msgNoteOn:
-              if (pMFembedded->Track[i].iDefaultChannel == 0) {
-                pMFembedded->Track[i].iDefaultChannel = msg[i].MsgData.NoteOn.iChannel;
-                realChannel = pMFembedded->Track[i].iDefaultChannel;
-              }
-              onNoteOn(hMidiOut, realChannel, msg[i].MsgData.NoteOn.iNote, msg[i].MsgData.NoteOn.iVolume);
+              onNoteOn(hMidiOut, msg[i].MsgData.NoteOn.iChannel, msg[i].MsgData.NoteOn.iNote, msg[i].MsgData.NoteOn.iVolume);
               break;
             case	msgNoteKeyPressure:
               onNoteKeyPressure(hMidiOut, msg[i].MsgData.NoteKeyPressure.iChannel, msg[i].MsgData.NoteKeyPressure.iNote, msg[i].MsgData.NoteKeyPressure.iPressure);
               break;
             case	msgSetParameter:
-              onSetParameter(hMidiOut, msg[i].MsgData.NoteParameter.iChannel, msg[i].MsgData.NoteParameter.iControl, noteName, msg[i].MsgData.NoteParameter.iParam);
+              onSetParameter(hMidiOut, msg[i].MsgData.NoteParameter.iChannel, msg[i].MsgData.NoteParameter.iControl, msg[i].MsgData.NoteParameter.iParam);
               break;
             case	msgSetProgram:
               onSetProgram(hMidiOut, msg[i].MsgData.ChangeProgram.iChannel, msg[i].MsgData.ChangeProgram.iProgram);
@@ -193,7 +179,7 @@ void playMidiFile(const char *pFilename) {
               onChangePressure(hMidiOut, msg[i].MsgData.ChangePressure.iChannel, msg[i].MsgData.ChangePressure.iPressure);
               break;
             case	msgSetPitchWheel:
-              onSetPitchWheel(hMidiOut, realChannel, (msg[i].MsgData.PitchWheel.iPitch + 8192) << 1);
+              onSetPitchWheel(hMidiOut, msg[i].MsgData.PitchWheel.iChannel, msg[i].MsgData.PitchWheel.iPitch + 8192);
               break;
             case	msgMetaEvent:
               printf("---- ");
@@ -280,7 +266,7 @@ void playMidiFile(const char *pFilename) {
             printf("\r\n");            
           }
 
-          if (midiReadGetNextMessage(pMF, pMFembedded, i, &msg[i], &msgEmbedded[i], FALSE)) {
+          if (midiReadGetNextMessage(pMF, pMFembedded, i, &msg[i], &msgEmbedded[i], TRUE)) {
             any_track_had_data = 1; // 0 ???
           }
         }

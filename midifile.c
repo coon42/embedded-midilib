@@ -19,6 +19,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ * TODO: support of running status!
  */
 
 #include <stdio.h>
@@ -28,10 +30,6 @@
 #include <malloc.h>
 #endif
 #include "midifile.h"
-
-
-
-
 
 
 // -----------------------------------
@@ -989,6 +987,8 @@ int midiReadGetNumTracks(const MIDI_FILE *_pMF, MIDI_FILE *_pMFembedded) {
 	return pMF->Header.iNumTracks;
 }
 
+
+
 // looks ok!
 BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int iTrack, MIDI_MSG* pMsg, MIDI_MSG* pMsgEmbedded, BOOL embedded) {
   MIDI_FILE_TRACK *pTrack;
@@ -1009,7 +1009,7 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 
   if(pTrackNew->ptrNew >= pTrackNew->pEndNew)
     return FALSE;
-	
+    	
   // Read Delta Time
 	pTrack->ptr = _midiReadVarLen(pTrack->ptr, pMFembedded, &pTrackNew->ptrNew, &pMsg->dt, &pMsgEmbedded->dt);
 	pTrack->pos += pMsg->dt; // obsolete
@@ -1018,21 +1018,22 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 	pMsg->dwAbsPos = pTrack->pos; // obsolete
   pMsgEmbedded->dwAbsPos = pTrackNew->pos;
 
+  BOOL bRunningStatus = FALSE;
   // Standard version (TODO: check, if this is correct)
-	if (*pTrack->ptr & 0x80) {	/* If this is sys message */
+  if (*pTrack->ptr >= 0x80) {	/* If this is sys message */
+	//if (*pTrack->ptr & 0x80) {	/* If this is sys message */
 		pMsg->iType = (tMIDI_MSG)((*pTrack->ptr) & 0xf0);
 		pMsgDataPtr = pTrack->ptr+1;
 
 		/* SysEx & Meta events don't carry channel info, but something
 		** important in their lower bits that we must keep */
 		if (pMsg->iType == 0xf0)
-			pMsg->iType = (tMIDI_MSG)(*pTrack->ptr);
-
-    
+			pMsg->iType = (tMIDI_MSG)(*pTrack->ptr); 
   }
 	else {  /* just data - so use the last msg type */
 		pMsg->iType = pMsg->iLastMsgType;
 		pMsgDataPtr = pTrack->ptr;
+    bRunningStatus = TRUE;
   }
   // ---
 
@@ -1040,7 +1041,7 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
   BYTE eventType;
   readByteFromFile(pMFembedded->pFile, &eventType, pTrackNew->ptrNew);
 
-  if (eventType & 0x80) {	/* Is this is sys message */
+  if (eventType & 0x80) {	/* Is this a sys message */
     pMsgEmbedded->iType = (tMIDI_MSG)(eventType & 0xF0);
     pMsgDataPtrEmbedded = pTrackNew->ptrNew + 1;
 
@@ -1056,10 +1057,13 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
   // ---
 
 	pMsg->iLastMsgType = (tMIDI_MSG)pMsg->iType; // obsolete
-	pMsg->iLastMsgChnl = (BYTE)((*pTrack->ptr) & 0x0f) + 1; // obsolete
-
   pMsgEmbedded->iLastMsgType = (tMIDI_MSG)pMsgEmbedded->iType;
-  pMsgEmbedded->iLastMsgChnl = (BYTE)(eventType & 0x0f) + 1;
+
+  if (!bRunningStatus) {
+    pMsg->iLastMsgChnl = (BYTE)((*pTrack->ptr) & 0x0f) + 1; // obsolete
+    pMsgEmbedded->iLastMsgChnl = (BYTE)(eventType & 0x0f) + 1;
+  }
+  
 
   tMIDI_MSG type = embedded ? pMsgEmbedded->iType : pMsg->iType;
   switch(type) {  
@@ -1325,7 +1329,7 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
 		else {
 			pMsg->bImpliedMsg = TRUE;
 			pMsg->iImpliedMsg = pMsg->iLastMsgType;
-			pMsg->iMsgSize--;
+			pMsg->iMsgSize--;      
     }
 
     // The next two lines are done in embedded part!
