@@ -1325,7 +1325,7 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int 
       readChunkFromFile(pMFembedded->pFile, pMsgEmbedded->dataEmbedded, bptrEmbedded, szEmbedded);
       pTrackNew->ptrNew += pMsgEmbedded->iMsgSize;
       pMsgEmbedded->iMsgSize = szEmbedded;
-      pMsgEmbedded->MsgData.SysEx.pData = pMsg->dataEmbedded;
+      pMsgEmbedded->MsgData.SysEx.pData = pMsgEmbedded->dataEmbedded;
       pMsgEmbedded->MsgData.SysEx.iSize = szEmbedded;
 		  break;
   }

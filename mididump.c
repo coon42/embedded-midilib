@@ -38,17 +38,13 @@
 
 #pragma comment (lib, "winmm.lib")
 
-void HexList(BYTE *pData, int iNumBytes)
-{
-  int i;
-
-  for (i = 0; i<iNumBytes; i++)
+void HexList(BYTE *pData, int iNumBytes) {
+  for (int i = 0; i < iNumBytes; i++)
     printf("%.2x ", pData[i]);
 }
 
-// Routines for simplifying MIDI output
+// Routine for simplifying MIDI output
 // ------------------------------------
-
 DWORD MidiOutMessage(HMIDIOUT hMidi, int iStatus, int iChannel, int iData1, int iData2) {
   DWORD dwMessage = iStatus | iChannel - 1 | (iData1 << 8) | (iData2 << 16);
   return midiOutShortMsg(hMidi, dwMessage);
