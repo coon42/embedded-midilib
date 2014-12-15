@@ -45,8 +45,8 @@
 /*
 ** Name resolving prototypes
 */
-BOOL	muGetInstrumentName(char *pName, int iInstr);
-BOOL	muGetDrumName(char *pName, int iInstr);
+BOOL	muGetInstrumentName(char *pName, int32_t iInstr);
+BOOL	muGetDrumName(char *pName, int32_t iInstr);
 BOOL	muGetMIDIMsgName(char *pName, tMIDI_MSG iMsg);
 BOOL	muGetControlName(char *pName, tMIDI_CC iCC);
 BOOL	muGetKeySigName(char *pName, tMIDI_KEYSIG iKey);
@@ -56,12 +56,12 @@ BOOL	muGetMetaName(char *pName, tMIDI_META iEvent);
 /*
 ** Conversion prototypes
 */
-int		muGetNoteFromName(const char *pName);
-char	*muGetNameFromNote(char *pStr, int iNote);
-float	muGetFreqFromNote(int iNote);
-int		muGetNoteFromFreq(float fFreq);
+int32_t		muGetNoteFromName(const char *pName);
+char	*muGetNameFromNote(char *pStr, int32_t iNote);
+float	muGetFreqFromNote(int32_t iNote);
+int32_t		muGetNoteFromFreq(float fFreq);
 
-int muGuessChord(const int *pNoteStatus, const int channel, const int lowRange, const int highRange);
-char *muGetChordName(char *str, int chord);
+int32_t muGuessChord(const int32_t *pNoteStatus, const int32_t channel, const int32_t lowRange, const int32_t highRange);
+char *muGetChordName(char *str, int32_t chord);
 
 #endif	/* _MIDIUTIL_H*/
