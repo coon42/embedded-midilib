@@ -35,67 +35,128 @@
 #include <time.h>
 #include "midifile.h"
 #include "midiutil.h"
+#include <inttypes.h>
 
 #pragma comment (lib, "winmm.lib")
 
-void HexList(BYTE *pData, int iNumBytes) {
-  for (int i = 0; i < iNumBytes; i++)
+void HexList(uint8_t *pData, int32_t iNumBytes) {
+  for (int32_t i = 0; i < iNumBytes; i++)
     printf("%.2x ", pData[i]);
 }
 
 // Routine for simplifying MIDI output
 // ------------------------------------
-DWORD MidiOutMessage(HMIDIOUT hMidi, int iStatus, int iChannel, int iData1, int iData2) {
-  DWORD dwMessage = iStatus | iChannel - 1 | (iData1 << 8) | (iData2 << 16);
+uint32_t MidiOutMessage(HMIDIOUT hMidi, int32_t iStatus, int32_t iChannel, int32_t iData1, int32_t iData2) {
+  uint32_t dwMessage = iStatus | iChannel - 1 | (iData1 << 8) | (iData2 << 16);
   return midiOutShortMsg(hMidi, dwMessage);
 }
 
 // Midi Event handlers
 char noteName[64];
 
-void onNoteOff(HMIDIOUT hMidiOut, int channel, int note) {
+void onNoteOff(HMIDIOUT hMidiOut, int32_t channel, int32_t note) {
   muGetNameFromNote(noteName, note);
   MidiOutMessage(hMidiOut, msgNoteOff, channel, note, 0);
   printf("(%d) %s", channel, noteName);
 }
 
-void onNoteOn(HMIDIOUT hMidiOut, int channel, int note, int velocity) {
+void onNoteOn(HMIDIOUT hMidiOut, int32_t channel, int32_t note, int32_t velocity) {
   muGetNameFromNote(noteName, note);
   MidiOutMessage(hMidiOut, msgNoteOn, channel, note, velocity);
   printf("(%d) %s [%d] %d", channel, noteName, note, velocity);
 }
 
-void onNoteKeyPressure(HMIDIOUT hMidiOut, int channel, int note, int pressure) {
-  muGetNameFromNote(noteName, note, pressure);
+void onNoteKeyPressure(HMIDIOUT hMidiOut, int32_t channel, int32_t note, int32_t pressure) {
+  muGetNameFromNote(noteName, note);
   MidiOutMessage(hMidiOut, msgNoteKeyPressure, channel, note, pressure);
   printf("(%d) %s %d", channel, noteName, pressure);
 }
 
-void onSetParameter(HMIDIOUT hMidiOut, int channel, int control, int parameter) {
+void onSetParameter(HMIDIOUT hMidiOut, int32_t channel, int32_t control, int32_t parameter) {
   muGetControlName(noteName, control);
   MidiOutMessage(hMidiOut, msgSetParameter, channel, control, parameter);
   printf("(%d) %s -> %d", channel, noteName, parameter);
 }
 
-void onSetProgram(HMIDIOUT hMidiOut, int channel, int program) {
+void onSetProgram(HMIDIOUT hMidiOut, int32_t channel, int32_t program) {
   muGetInstrumentName(noteName, program);
   MidiOutMessage(hMidiOut, msgSetProgram, channel, program, 0);
   printf("(%d) %s", channel, noteName);
 }
 
-void onChangePressure(HMIDIOUT hMidiOut, int channel, int pressure) {
+void onChangePressure(HMIDIOUT hMidiOut, int32_t channel, int32_t pressure) {
   muGetControlName(noteName, pressure);
   MidiOutMessage(hMidiOut, msgChangePressure, channel, pressure, 0);
   printf("(%d) %s", channel, noteName);
 }
 
-void onSetPitchWheel(HMIDIOUT hMidiOut, int channel, short pitch) {
+void onSetPitchWheel(HMIDIOUT hMidiOut, int32_t channel, int16_t pitch) {
   MidiOutMessage(hMidiOut, msgSetPitchWheel, channel, pitch << 1, pitch >> 7);
   printf("(%d) %d", channel, pitch);
 }
 
-void onMetaEvent() {
+void onMetaMIDIPort() {
+
+}
+
+void onMetaSequenceNumber() {
   // TODO
+}
+
+void onMetaTextEvent() {
+
+}
+
+void onMetaCopyright() {
+
+}
+
+void onMetaTrackName() {
+
+}
+
+void onMetaInstrument() {
+
+}
+
+void onMetaLyric() {
+
+}
+
+void onMetaMarker() {
+
+}
+
+void onMetaCuePoint() {
+
+}
+
+void onMetaEndSequence() {
+
+}
+
+void onMetaSetTempo() {
+
+}
+
+void onMetaSMPTEOffset() {
+
+}
+
+void onMetaTimeSig() {
+
+}
+
+void onMetaKeySig() {
+
+}
+
+void onMetaSequencerSpecific() {
+
+}
+
+void onMetaSysEx() {
+
 }
 
 void playMidiFile(const char *pFilename) {
@@ -103,13 +164,12 @@ void playMidiFile(const char *pFilename) {
   _MIDI_FILE* pMFembedded;
   BOOL open_success;
   char str[128];
-  int ev;
+  int32_t ev;
 
   HMIDIOUT hMidiOut;
-  int i = 0;
-  clock_t t2;
+  clock_t timeToWait = 0;
 
-  unsigned int result = midiOutOpen(&hMidiOut, MIDI_MAPPER, 0, 0, 0);
+  uint32_t result = midiOutOpen(&hMidiOut, MIDI_MAPPER, 0, 0, 0);
   if (result != MMSYSERR_NOERROR)
     printf("Midi device Geht nicht!");
 
@@ -123,16 +183,16 @@ void playMidiFile(const char *pFilename) {
     
     static MIDI_MSG msg[MAX_MIDI_TRACKS];
     static MIDI_MSG msgEmbedded[MAX_MIDI_TRACKS];
-    int i, iNumTracks;
-    int any_track_had_data = 1;
-    DWORD current_midi_tick = 0;
-    DWORD bpm = 192;
+    int32_t iNumTracks;
+    int32_t any_track_had_data = 1;
+    uint32_t current_midi_tick = 0;
+    uint32_t bpm = 192;
     float ms_per_tick;
-    DWORD ticks_to_wait = 0;
+    uint32_t ticks_to_wait = 0;
 
     iNumTracks = midiReadGetNumTracks(pMF, pMFembedded);
 
-    for (i = 0; i< iNumTracks; i++) {
+    for (int32_t i = 0; i< iNumTracks; i++) {
       pMFembedded->Track[i].iDefaultChannel = 0;
       midiReadInitMessage(&msgEmbedded[i]);
       midiReadGetNextMessage(pMF, pMFembedded, i, &msg[i], &msgEmbedded[i], TRUE);
@@ -143,10 +203,10 @@ void playMidiFile(const char *pFilename) {
     printf("start playing...\r\n");
 
     while (any_track_had_data) {
-      any_track_had_data = 0;
+      any_track_had_data = 1;
       ticks_to_wait = -1;
 
-      for (i = 0; i < iNumTracks; i++) {
+      for (int32_t i = 0; i < iNumTracks; i++) {
         while (current_midi_tick == pMFembedded->Track[i].pos && pMFembedded->Track[i].ptrNew < pMFembedded->Track[i].pEndNew) {
           printf("[Track: %d]", i);
           ev = msgEmbedded[i].bImpliedMsg ? msgEmbedded[i].iImpliedMsg : msgEmbedded[i].iType;
@@ -255,7 +315,7 @@ void playMidiFile(const char *pFilename) {
             /*
             printf("  [");
             if (msg[i].bImpliedMsg) printf("%X!", msg[i].iImpliedMsg);
-            for (unsigned int j = 0; j < msg[i].iMsgSize; j++)
+            for (uint32_t j = 0; j < msg[i].iMsgSize; j++)
               printf("%X ", msg[i].data[j]);
             printf["]");
             */
@@ -268,22 +328,16 @@ void playMidiFile(const char *pFilename) {
         }
 
         // TODO: make this line of hell readable!
-        ticks_to_wait = ((int)(pMFembedded->Track[i].pos - current_midi_tick) > 0 && ticks_to_wait > pMFembedded->Track[i].pos - current_midi_tick) ? pMFembedded->Track[i].pos - current_midi_tick : ticks_to_wait;
+        ticks_to_wait = ((int32_t)(pMFembedded->Track[i].pos - current_midi_tick) > 0 && ticks_to_wait > pMFembedded->Track[i].pos - current_midi_tick) ? pMFembedded->Track[i].pos - current_midi_tick : ticks_to_wait;
       }
 
       if (ticks_to_wait == -1)
         ticks_to_wait = 0;
 
       // wait microseconds per tick here
-      t2 = clock() + ticks_to_wait * ms_per_tick;
-
-      time_t t1 = clock();
-
-      while (t1 < t2) {
-        t1 = clock();
-        t1 = t1;
-        // just wait here...
-      }
+      timeToWait = clock() + ticks_to_wait * ms_per_tick;
+      while (clock() < timeToWait); // just wait here...
+      
       current_midi_tick += ticks_to_wait;
     }
 

@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdint.h>
 #include "midifile.h"
 #include "midiutil.h"
 
@@ -411,7 +412,7 @@ static float fFreqlist[] = {
 /*
 ** Name resolving functions
 */
-BOOL muGetInstrumentName(char *pName, int iInstr)
+BOOL muGetInstrumentName(char *pName, int32_t iInstr)
 {
 	if (iInstr < 0 || iInstr > 127)
 		return FALSE;
@@ -419,7 +420,7 @@ BOOL muGetInstrumentName(char *pName, int iInstr)
 	return TRUE;
 }
 
-BOOL muGetDrumName(char *pName, int iInstr)
+BOOL muGetDrumName(char *pName, int32_t iInstr)
 {
 	if (iInstr < 0 || iInstr > 127)
 		return FALSE;
@@ -493,9 +494,9 @@ static char *iKeysList[2][8] = {
 /*b*/{"C ", "F ", "Bb", "Eb", "Ab", "Db", "Gb", "Cb", },
 };
 
-int iRootNum = (iKey&7);
-int iFlats = (iKey&keyMaskNeg);
-int iMin = (iKey&keyMaskMin);
+int32_t iRootNum = (iKey&7);
+int32_t iFlats = (iKey&keyMaskNeg);
+int32_t iMin = (iKey&keyMaskMin);
 
 	strcpy_s(pName, 8, iKeysList[iFlats?1:0][iRootNum]);
 	strcat_s(pName, 8, iMin ? " Min" : " Maj");
@@ -537,11 +538,11 @@ BOOL muGetMetaName(char *pName, tMIDI_META iEvent)
 /*
 ** Conversion Functions
 */
-int muGetNoteFromName(const char *pName)
+int32_t muGetNoteFromName(const char *pName)
 {
-int note_map[] = {9, 11, 0, 2, 4, 5, 7};
+int32_t note_map[] = {9, 11, 0, 2, 4, 5, 7};
 char *p, cpy[16];
-int note=0;
+int32_t note=0;
 
 	strncpy_s(cpy, 256, pName, 15);
 	cpy[15] = '\0';
@@ -569,7 +570,7 @@ int note=0;
 	return note;
 }
 
-char *muGetNameFromNote(char *pStr, int iNote)
+char *muGetNameFromNote(char *pStr, int32_t iNote)
 {
 	if (!pStr)		return NULL;
 
@@ -581,9 +582,9 @@ char *muGetNameFromNote(char *pStr, int iNote)
 	return pStr;
 }
 
-float muGetFreqFromNote(int iNote)
+float muGetFreqFromNote(int32_t iNote)
 {
-int oct = iNote/12-5;
+int32_t oct = iNote/12-5;
 float freq;
 
 	if (iNote<0 || iNote>127)	return 0;
@@ -599,12 +600,12 @@ float freq;
 	return freq;
 }
 
-int muGetNoteFromFreq(float fFreq)
+int32_t muGetNoteFromFreq(float fFreq)
 {
 /* This is for completeness, I'm not sure of how often it
 ** will get used. Therefore, the code is un-optimised :)
 */
-int iNote, iBestNote=0;
+int32_t iNote, iBestNote=0;
 float fDiff=20000, f;
 
 	for(iNote=0;iNote<127;++iNote)
@@ -622,14 +623,14 @@ float fDiff=20000, f;
 }
 
 
-int muGuessChord(const int *pNoteStatus, const int channel, const int lowRange, const int highRange) {
-	int octave[24];
-	int i;
-	int lowestNote=999;
-	int startNote = 999;
-	int chordRoot = 0;
-	int chordType = 0;
-	int chordAdditions = 0;
+int32_t muGuessChord(const int32_t *pNoteStatus, const int32_t channel, const int32_t lowRange, const int32_t highRange) {
+	int32_t octave[24];
+	int32_t i;
+	int32_t lowestNote=999;
+	int32_t startNote = 999;
+	int32_t chordRoot = 0;
+	int32_t chordType = 0;
+	int32_t chordAdditions = 0;
 
 	for(i=0;i<24;++i) {
 		octave[i] = 0;
@@ -710,9 +711,9 @@ int muGuessChord(const int *pNoteStatus, const int channel, const int lowRange, 
 	return chordRoot | chordType | chordAdditions | (lowestNote<<16);
 }
 
-char *muGetChordName(char *str, int chord) {
-	int root = chord & CHORD_ROOT_MASK;
-	int bass = (chord & CHORD_BASS_MASK) >> 16;
+char *muGetChordName(char *str, int32_t chord) {
+	int32_t root = chord & CHORD_ROOT_MASK;
+	int32_t bass = (chord & CHORD_BASS_MASK) >> 16;
 
 	if (root < 0 || root > 11) {
 		root = 0;
