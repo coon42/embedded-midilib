@@ -428,55 +428,20 @@ BOOL muGetDrumName(char *pName, int32_t iInstr)
 	return TRUE;
 }
 
-BOOL muGetMIDIMsgName(char *pName, tMIDI_MSG iMsg)
-{
-	switch(iMsg)
-		{
-		case	msgNoteOff:
-				strcpy_s(pName, 32, "Note off");
-				break;
-
-		case	msgNoteOn:
-				strcpy_s(pName, 32, "Note on");
-				break;
-
-		case	msgNoteKeyPressure:
-				strcpy_s(pName, 32, "Note key pressure");
-				break;
-
-		case	msgSetParameter:
-				strcpy_s(pName, 32, "Set parameter");
-				break;
-
-		case	msgSetProgram:
-				strcpy_s(pName, 32, "Set program");
-				break;
-
-		case	msgChangePressure:
-				strcpy_s(pName, 32, "Change pressure");
-				break;
-
-		case	msgSetPitchWheel:
-				strcpy_s(pName, 32, "Set pitch wheel");
-				break;
-
-		case	msgMetaEvent:
-				strcpy_s(pName, 32, "Meta event");
-				break;
-
-		case	msgSysEx1:
-				strcpy_s(pName, 32, "SysEx1");
-				break;
-
-		case	msgSysEx2:
-				strcpy_s(pName, 32, "SysEx2");
-				break;
-
-		default:
-        strcpy_s(pName, 32, "Unknown");
-				return FALSE;
+void muGetMIDIMsgName(char *pName, tMIDI_MSG iMsg) {
+	switch(iMsg){
+		case	msgNoteOff:         strcpy_s(pName, 32, "Note off");          break;
+		case	msgNoteOn:          strcpy_s(pName, 32, "Note on");           break;
+		case	msgNoteKeyPressure: strcpy_s(pName, 32, "Note key pressure"); break;
+		case	msgSetParameter:    strcpy_s(pName, 32, "Set parameter");     break;
+		case	msgSetProgram:      strcpy_s(pName, 32, "Set program");       break;
+		case	msgChangePressure:  strcpy_s(pName, 32, "Change pressure");   break;
+		case	msgSetPitchWheel:   strcpy_s(pName, 32, "Set pitch wheel");   break;
+		case	msgMetaEvent:       strcpy_s(pName, 32, "Meta event");        break;
+		case	msgSysEx1:          strcpy_s(pName, 32, "SysEx1");            break;
+		case	msgSysEx2:          strcpy_s(pName, 32, "SysEx2");            break;
+    default:                  strcpy_s(pName, 32, "Unknown");           break;
 		}
-	return TRUE;
 }
 
 BOOL muGetControlName(char *pName, tMIDI_CC iCC)
@@ -538,11 +503,10 @@ BOOL muGetMetaName(char *pName, tMIDI_META iEvent)
 /*
 ** Conversion Functions
 */
-int32_t muGetNoteFromName(const char *pName)
-{
-int32_t note_map[] = {9, 11, 0, 2, 4, 5, 7};
-char *p, cpy[16];
-int32_t note=0;
+int32_t muGetNoteFromName(const char *pName) {
+  int32_t note_map[] = {9, 11, 0, 2, 4, 5, 7};
+  char *p, cpy[16];
+  int32_t note = 0;
 
 	strncpy_s(cpy, 256, pName, 15);
 	cpy[15] = '\0';
@@ -551,11 +515,9 @@ int32_t note=0;
 	while(!isalpha(*p) && *p)
 		p++;
 	
-	if (*p)
-		{
+	if (*p) {
 		note = toupper(*p)-'A';
-		if (note >= 0 && note <= 7)
-			{
+		if (note >= 0 && note <= 7) {
 			note = note_map[note];
 			p++;
 			if (*p == 'b')
@@ -564,14 +526,13 @@ int32_t note=0;
 				note++, p++;
 			
 			note += atoi(p)*12+MIDI_NOTE_C0;
-			}
-		}
+    }
+  }
 	
 	return note;
 }
 
-char *muGetNameFromNote(char *pStr, int32_t iNote)
-{
+char *muGetNameFromNote(char *pStr, int32_t iNote) {
 	if (!pStr)		return NULL;
 
 	if (iNote<0 || iNote>127)

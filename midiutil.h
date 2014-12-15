@@ -47,7 +47,7 @@
 */
 BOOL	muGetInstrumentName(char *pName, int32_t iInstr);
 BOOL	muGetDrumName(char *pName, int32_t iInstr);
-BOOL	muGetMIDIMsgName(char *pName, tMIDI_MSG iMsg);
+void	muGetMIDIMsgName(char *pName, tMIDI_MSG iMsg);
 BOOL	muGetControlName(char *pName, tMIDI_CC iCC);
 BOOL	muGetKeySigName(char *pName, tMIDI_KEYSIG iKey);
 BOOL	muGetTextName(char *pName, tMIDI_TEXT iEvent);
