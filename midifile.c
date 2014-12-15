@@ -1267,16 +1267,32 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMF, MIDI_FILE* _pMFembedded, int3
 					  }
 					  break;
 			  case	metaSMPTEOffset:
-					  pMsg->MsgData.MetaEvent.Data.SMPTE.iHours = *(pTrack->ptr+0);
-					  pMsg->MsgData.MetaEvent.Data.SMPTE.iMins= *(pTrack->ptr+1);
-					  pMsg->MsgData.MetaEvent.Data.SMPTE.iSecs = *(pTrack->ptr+2);
-					  pMsg->MsgData.MetaEvent.Data.SMPTE.iFrames = *(pTrack->ptr+3);
-					  pMsg->MsgData.MetaEvent.Data.SMPTE.iFF = *(pTrack->ptr+4);
+					  pMsg->MsgData.MetaEvent.Data.SMPTE.iHours = *(pTrack->ptr + 0);
+					  pMsg->MsgData.MetaEvent.Data.SMPTE.iMins= *(pTrack->ptr + 1);
+					  pMsg->MsgData.MetaEvent.Data.SMPTE.iSecs = *(pTrack->ptr + 2);
+					  pMsg->MsgData.MetaEvent.Data.SMPTE.iFrames = *(pTrack->ptr + 3);
+					  pMsg->MsgData.MetaEvent.Data.SMPTE.iFF = *(pTrack->ptr + 4);
+
+            // embedded
+            uint8_t tmpSMPTE[5];
+            readChunkFromFile(pMFembedded->pFile, tmpSMPTE, pTrackNew->ptrNew, 5);
+
+            pMsgEmbedded->MsgData.MetaEvent.Data.SMPTE.iHours = tmpSMPTE[0];
+            pMsgEmbedded->MsgData.MetaEvent.Data.SMPTE.iMins = tmpSMPTE[1];
+            pMsgEmbedded->MsgData.MetaEvent.Data.SMPTE.iSecs = tmpSMPTE[2];
+            pMsgEmbedded->MsgData.MetaEvent.Data.SMPTE.iFrames = tmpSMPTE[3];
+            pMsgEmbedded->MsgData.MetaEvent.Data.SMPTE.iFF = tmpSMPTE[4];
 					  break;
 			  case	metaTimeSig:
-					  pMsg->MsgData.MetaEvent.Data.TimeSig.iNom = *(pTrack->ptr+0);
-					  pMsg->MsgData.MetaEvent.Data.TimeSig.iDenom = *(pTrack->ptr+1) * MIDI_NOTE_MINIM;
+					  pMsg->MsgData.MetaEvent.Data.TimeSig.iNom = *(pTrack->ptr + 0);
+					  pMsg->MsgData.MetaEvent.Data.TimeSig.iDenom = *(pTrack->ptr + 1) * MIDI_NOTE_MINIM;
 					  /* TODO: Variations without 24 & 8 */
+
+            // embedded
+            uint8_t tmpTimeSig[2];
+            readChunkFromFile(pMFembedded->pFile, tmpTimeSig, pTrackNew->ptrNew, 2);
+            pMsgEmbedded->MsgData.MetaEvent.Data.TimeSig.iNom = tmpTimeSig[0];
+            pMsgEmbedded->MsgData.MetaEvent.Data.TimeSig.iDenom = tmpTimeSig[1] * MIDI_NOTE_MINIM;
 					  break;
 			  case	metaKeySig:
 					  if (*pTrack->ptr & 0x80) {
