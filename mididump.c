@@ -267,7 +267,8 @@ void playMidiFile(const char *pFilename) {
           }
         }
 
-        ticks_to_wait = (pMFembedded->Track[i].pos - current_midi_tick > 0 && ticks_to_wait > pMFembedded->Track[i].pos - current_midi_tick) ? pMFembedded->Track[i].pos - current_midi_tick : ticks_to_wait;
+        // TODO: make this line of hell readable!
+        ticks_to_wait = ((int)(pMFembedded->Track[i].pos - current_midi_tick) > 0 && ticks_to_wait > pMFembedded->Track[i].pos - current_midi_tick) ? pMFembedded->Track[i].pos - current_midi_tick : ticks_to_wait;
       }
 
       if (ticks_to_wait == -1)
