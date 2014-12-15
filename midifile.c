@@ -55,6 +55,10 @@ int32_t readDwordFromFile(FILE* pFile, uint32_t* dst, int32_t startPos) {
   return readChunkFromFile(pFile, dst, startPos, sizeof(uint32_t));
 }
 
+void setPlaybackTempo(_MIDI_FILE* midiFile, int32_t bpm) {
+  midiFile->msPerTick = 60000.0f / (bpm * midiFile->Header.PPQN);
+}
+
 
 /*
 ** Internal Functions
@@ -428,11 +432,13 @@ MIDI_FILE  *midiFileOpen(const char *pFilename, BOOL embedded) {
 		if (pMF)		free((void *)pMF); // obsolete
 		return NULL;
   }
-	
   _midiFile.pFile = fpNew;
 
+  setPlaybackTempo(&_midiFile, MIDI_BPM_DEFAULT);
+  setPlaybackTempo(pMF, MIDI_BPM_DEFAULT);
+
   if (embedded)
-    return (MIDI_FILE *)&_midiFile; // useless here, but will be used in future
+    return (MIDI_FILE *)&_midiFile;
   else
 	  return (MIDI_FILE *)pMF; // obsolete
   

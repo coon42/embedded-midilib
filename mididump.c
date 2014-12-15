@@ -58,7 +58,7 @@ void printTrackPrefix(uint32_t track, uint32_t tick, char* pEventName)  {
 }
 
 // Midi Event handlers
-char noteName[64];
+char noteName[64]; // TOOD: refactor to const string array
 
 void onNoteOff(int32_t track, int32_t tick, int32_t channel, int32_t note) {
   muGetNameFromNote(noteName, note);
@@ -214,11 +214,121 @@ void onMetaSysEx(int32_t track, int32_t tick, void* pData, uint32_t size) {
   printf("\r\n");
 }
 
+// TODO: Hide the following functions from user
+void dispatchMidiMsg(_MIDI_FILE* midiFile, int32_t track, MIDI_MSG* msg) {
+  int32_t ev = msg->bImpliedMsg ? msg->iImpliedMsg : msg->iType;
+  switch (ev) {
+    case	msgNoteOff:
+      onNoteOff(track, msg->dwAbsPos, msg->MsgData.NoteOff.iChannel, msg->MsgData.NoteOff.iNote);
+      break;
+    case	msgNoteOn:
+      onNoteOn(track, msg->dwAbsPos, msg->MsgData.NoteOn.iChannel, msg->MsgData.NoteOn.iNote, msg->MsgData.NoteOn.iVolume);
+      break;
+    case	msgNoteKeyPressure:
+      onNoteKeyPressure(track, msg->dwAbsPos, msg->MsgData.NoteKeyPressure.iChannel, msg->MsgData.NoteKeyPressure.iNote, msg->MsgData.NoteKeyPressure.iPressure);
+      break;
+    case	msgSetParameter:
+      onSetParameter(track, msg->dwAbsPos, msg->MsgData.NoteParameter.iChannel, msg->MsgData.NoteParameter.iControl, msg->MsgData.NoteParameter.iParam);
+      break;
+    case	msgSetProgram:
+      onSetProgram(track, msg->dwAbsPos, msg->MsgData.ChangeProgram.iChannel, msg->MsgData.ChangeProgram.iProgram);
+      break;
+    case	msgChangePressure:
+      onChangePressure(track, msg->dwAbsPos, msg->MsgData.ChangePressure.iChannel, msg->MsgData.ChangePressure.iPressure);
+      break;
+    case	msgSetPitchWheel:
+      onSetPitchWheel(track, msg->dwAbsPos, msg->MsgData.PitchWheel.iChannel, msg->MsgData.PitchWheel.iPitch + 8192);
+      break;
+    case	msgMetaEvent:
+      switch (msg->MsgData.MetaEvent.iType) {
+      case	metaMIDIPort:
+        onMetaMIDIPort(track, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.iMIDIPort);
+        break;
+      case	metaSequenceNumber:
+        onMetaSequenceNumber(track, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.iSequenceNumber);
+        break;
+      case	metaTextEvent:
+        onMetaTextEvent(track, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
+        break;
+      case	metaCopyright:
+        onMetaCopyright(track, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
+        break;
+      case	metaTrackName:
+        onMetaTrackName(track, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
+        break;
+      case	metaInstrument:
+        onMetaInstrument(track, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
+        break;
+      case	metaLyric:
+        onMetaLyric(track, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
+        break;
+      case	metaMarker:
+        onMetaMarker(track, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
+        break;
+      case	metaCuePoint:
+        onMetaCuePoint(track, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
+        break;
+      case	metaEndSequence:
+        onMetaEndSequence(track, msg->dwAbsPos);
+        break;
+      case	metaSetTempo:
+        setPlaybackTempo(midiFile, msg->MsgData.MetaEvent.Data.Tempo.iBPM);
+        onMetaSetTempo(track, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Tempo.iBPM);
+        break;
+      case	metaSMPTEOffset:
+        onMetaSMPTEOffset(track, msg->dwAbsPos,
+          msg->MsgData.MetaEvent.Data.SMPTE.iHours,
+          msg->MsgData.MetaEvent.Data.SMPTE.iMins,
+          msg->MsgData.MetaEvent.Data.SMPTE.iSecs,
+          msg->MsgData.MetaEvent.Data.SMPTE.iFrames,
+          msg->MsgData.MetaEvent.Data.SMPTE.iFF
+          );
+        break;
+      case	metaTimeSig:
+        // TODO: Metronome and thirtyseconds are missing!!!
+        onMetaTimeSig(track,
+          msg->dwAbsPos,
+          msg->MsgData.MetaEvent.Data.TimeSig.iNom,
+          msg->MsgData.MetaEvent.Data.TimeSig.iDenom / MIDI_NOTE_CROCHET,
+          0, 0
+          );
+        break;
+      case	metaKeySig: // TODO: scale is missing!!!
+        onMetaKeySig(track, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.KeySig.iKey, 0);
+        break;
+      case	metaSequencerSpecific:
+        onMetaSequencerSpecific(track, msg->dwAbsPos,
+          msg->MsgData.MetaEvent.Data.Sequencer.pData, msg->MsgData.MetaEvent.Data.Sequencer.iSize);
+        break;
+      }
+      break;
+
+    case	msgSysEx1:
+    case	msgSysEx2:
+      onMetaSysEx(track, msg->dwAbsPos, msg->MsgData.SysEx.pData, msg->MsgData.SysEx.iSize);
+      break;
+    }
+
+    if (ev == msgSysEx1 || ev == msgSysEx1 || (ev == msgMetaEvent && msg->MsgData.MetaEvent.iType == metaSequencerSpecific)) {
+      // Already done a hex dump
+    }
+    else {
+      /*
+      printf("  [");
+      if (msg->bImpliedMsg) printf("%X!", msg->iImpliedMsg);
+      for (uint32_t j = 0; j < msg->iMsgSize; j++)
+      printf("%X ", msg->data[j]);
+      printf["]");
+      */
+      //printf("\r\n");            
+    }
+}
+
+
 BOOL playMidiFile(const char *pFilename) {
   _MIDI_FILE* pMF;
   _MIDI_FILE* pMFembedded;
   BOOL open_success;
-  int32_t ev;
   clock_t timeToWait = 0;
    
   pMF = midiFileOpen(pFilename, FALSE);
@@ -231,14 +341,10 @@ BOOL playMidiFile(const char *pFilename) {
   
   static MIDI_MSG msg[MAX_MIDI_TRACKS];
   static MIDI_MSG msgEmbedded[MAX_MIDI_TRACKS];
-  int32_t iNumTracks;
   int32_t any_track_had_data = 1;
   uint32_t current_midi_tick = 0;
-  uint32_t bpm = 192;
-  float ms_per_tick;
   uint32_t ticks_to_wait = 0;
-
-  iNumTracks = midiReadGetNumTracks(pMF, pMFembedded);
+  int32_t iNumTracks = midiReadGetNumTracks(pMF, pMFembedded);
 
   for (int32_t i = 0; i< iNumTracks; i++) {
     pMFembedded->Track[i].iDefaultChannel = 0;
@@ -248,7 +354,7 @@ BOOL playMidiFile(const char *pFilename) {
 
   printf("Midi Format: %d\r\n", pMF->Header.iVersion);
   printf("Number of tracks: %d\r\n", iNumTracks);
-  printf("start playing...\r\n");
+  printf("Start playing...\r\n");
 
   while (any_track_had_data) {
     any_track_had_data = 1;
@@ -256,115 +362,7 @@ BOOL playMidiFile(const char *pFilename) {
 
     for (int32_t iTrack = 0; iTrack < iNumTracks; iTrack++) {
       while (current_midi_tick == pMFembedded->Track[iTrack].pos && pMFembedded->Track[iTrack].ptrNew < pMFembedded->Track[iTrack].pEndNew) {
-        ev = msgEmbedded[iTrack].bImpliedMsg ? msgEmbedded[iTrack].iImpliedMsg : msgEmbedded[iTrack].iType;
-                    
-        switch (ev) {
-          case	msgNoteOff:
-            onNoteOff(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.NoteOff.iChannel, msgEmbedded[iTrack].MsgData.NoteOff.iNote);
-            break;
-          case	msgNoteOn:
-            onNoteOn(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.NoteOn.iChannel, msgEmbedded[iTrack].MsgData.NoteOn.iNote, msgEmbedded[iTrack].MsgData.NoteOn.iVolume);
-            break;
-          case	msgNoteKeyPressure:
-            onNoteKeyPressure(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.NoteKeyPressure.iChannel, msgEmbedded[iTrack].MsgData.NoteKeyPressure.iNote, msgEmbedded[iTrack].MsgData.NoteKeyPressure.iPressure);
-            break;
-          case	msgSetParameter:
-            onSetParameter(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.NoteParameter.iChannel, msgEmbedded[iTrack].MsgData.NoteParameter.iControl, msgEmbedded[iTrack].MsgData.NoteParameter.iParam);
-            break;
-          case	msgSetProgram:
-            onSetProgram(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.ChangeProgram.iChannel, msgEmbedded[iTrack].MsgData.ChangeProgram.iProgram);
-            break;
-          case	msgChangePressure:
-            onChangePressure(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.ChangePressure.iChannel, msgEmbedded[iTrack].MsgData.ChangePressure.iPressure);
-            break;
-          case	msgSetPitchWheel:
-            onSetPitchWheel(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.PitchWheel.iChannel, msgEmbedded[iTrack].MsgData.PitchWheel.iPitch + 8192);
-            break;
-          case	msgMetaEvent:
-            switch (msgEmbedded[iTrack].MsgData.MetaEvent.iType) {
-            case	metaMIDIPort:
-              onMetaMIDIPort(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.MetaEvent.Data.iMIDIPort);
-              break;
-            case	metaSequenceNumber:
-              onMetaSequenceNumber(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.MetaEvent.Data.iSequenceNumber);
-              break;
-            case	metaTextEvent:
-              onMetaTextEvent(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.MetaEvent.Data.Text.pData);
-              break;
-            case	metaCopyright:
-              onMetaCopyright(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.MetaEvent.Data.Text.pData);
-              break;
-            case	metaTrackName:
-              onMetaTrackName(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.MetaEvent.Data.Text.pData);
-              break;
-            case	metaInstrument:
-              onMetaInstrument(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.MetaEvent.Data.Text.pData);
-              break;
-            case	metaLyric:
-              onMetaLyric(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.MetaEvent.Data.Text.pData);
-              break;
-            case	metaMarker:
-              onMetaMarker(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.MetaEvent.Data.Text.pData);
-              break;
-            case	metaCuePoint:
-              onMetaCuePoint(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.MetaEvent.Data.Text.pData);
-              break;
-            case	metaEndSequence:
-              onMetaEndSequence(iTrack, msgEmbedded[iTrack].dwAbsPos);
-              break;
-            case	metaSetTempo:
-              bpm = msgEmbedded[iTrack].MsgData.MetaEvent.Data.Tempo.iBPM;
-              ms_per_tick = 60000.0f / (bpm * pMFembedded->Header.PPQN);
-              onMetaSetTempo(iTrack, msgEmbedded[iTrack].dwAbsPos, bpm);
-              break;
-            case	metaSMPTEOffset:
-              onMetaSMPTEOffset(iTrack,
-                msgEmbedded[iTrack].dwAbsPos,
-                msgEmbedded[iTrack].MsgData.MetaEvent.Data.SMPTE.iHours,
-                msgEmbedded[iTrack].MsgData.MetaEvent.Data.SMPTE.iMins,
-                msgEmbedded[iTrack].MsgData.MetaEvent.Data.SMPTE.iSecs,
-                msgEmbedded[iTrack].MsgData.MetaEvent.Data.SMPTE.iFrames,
-                msgEmbedded[iTrack].MsgData.MetaEvent.Data.SMPTE.iFF
-                );
-              break;
-            case	metaTimeSig:
-              // TODO: Metronome and thirtyseconds are missing!!!
-              onMetaTimeSig(iTrack, 
-                msgEmbedded[iTrack].dwAbsPos,
-                msgEmbedded[iTrack].MsgData.MetaEvent.Data.TimeSig.iNom,
-                msgEmbedded[iTrack].MsgData.MetaEvent.Data.TimeSig.iDenom / MIDI_NOTE_CROCHET,
-                0, 0 
-                );
-              break;
-            case	metaKeySig: // TODO: scale is missing!!!
-              onMetaKeySig(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.MetaEvent.Data.KeySig.iKey, 0);
-              break;
-            case	metaSequencerSpecific:
-              onMetaSequencerSpecific(iTrack, msgEmbedded[iTrack].dwAbsPos, 
-                msgEmbedded[iTrack].MsgData.MetaEvent.Data.Sequencer.pData, msgEmbedded[iTrack].MsgData.MetaEvent.Data.Sequencer.iSize);
-              break;
-            }
-            break;
-
-          case	msgSysEx1:
-          case	msgSysEx2:
-            onMetaSysEx(iTrack, msgEmbedded[iTrack].dwAbsPos, msgEmbedded[iTrack].MsgData.SysEx.pData, msgEmbedded[iTrack].MsgData.SysEx.iSize);
-            break;
-          }
-
-        if (ev == msgSysEx1 || ev == msgSysEx1 || (ev == msgMetaEvent && msgEmbedded[iTrack].MsgData.MetaEvent.iType == metaSequencerSpecific)) {
-          // Already done a hex dump
-        }
-        else {
-          /*
-          printf("  [");
-          if (msg[iTrack].bImpliedMsg) printf("%X!", msg[iTrack].iImpliedMsg);
-          for (uint32_t j = 0; j < msg[iTrack].iMsgSize; j++)
-            printf("%X ", msg[iTrack].data[j]);
-          printf["]");
-          */
-          //printf("\r\n");            
-        }
+        dispatchMidiMsg(pMFembedded, iTrack, &msgEmbedded[iTrack]);
 
         if (midiReadGetNextMessage(pMF, pMFembedded, iTrack, &msg[iTrack], &msgEmbedded[iTrack], TRUE)) {
           any_track_had_data = 1; // 0 ???
@@ -379,9 +377,8 @@ BOOL playMidiFile(const char *pFilename) {
       ticks_to_wait = 0;
 
     // wait microseconds per tick here
-    timeToWait = clock() + ticks_to_wait * ms_per_tick;
+    timeToWait = clock() + ticks_to_wait * pMFembedded->msPerTick;
     while (clock() < timeToWait); // just wait here...
-      
     current_midi_tick += ticks_to_wait;
   }
   midiReadFreeMessage(msg);

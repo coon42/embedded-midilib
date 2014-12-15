@@ -47,14 +47,13 @@ typedef int32_t	  BOOL;
 #define FALSE	0
 #endif
 
-
 // Embedded Constants
 #define META_EVENT_MAX_DATA_SIZE 128 // The meta event size must be at least 5 bytes long, to store: variable 4 byte length, 1 byte event id.
-
 
 /*
 ** MIDI Constants
 */
+#define MIDI_BPM_DEFAULT    120
 #define MIDI_PPQN_DEFAULT		384
 #define MIDI_VERSION_DEFAULT	1
 
@@ -112,6 +111,7 @@ typedef struct {
   MIDI_HEADER			Header;
   uint8_t *ptr;			/* to whole data block */
   uint32_t file_sz;
+  float msPerTick; // microseconds per tick
 
   MIDI_FILE_TRACK		Track[MAX_MIDI_TRACKS];
 } _MIDI_FILE;
@@ -212,6 +212,12 @@ typedef struct {
 /*
 ** midiFile* Prototypes
 */
+int32_t readChunkFromFile(FILE* pFile, void* dst, int32_t startPos, size_t num);
+int32_t readByteFromFile(FILE* pFile, uint8_t* dst, int32_t startPos);
+int32_t readWordFromFile(FILE* pFile, uint16_t* dst, int32_t startPos);
+int32_t readDwordFromFile(FILE* pFile, uint32_t* dst, int32_t startPos);
+void setPlaybackTempo(_MIDI_FILE* midiFile, int32_t bpm);
+
 MIDI_FILE  *midiFileCreate(const char *pFilename, BOOL bOverwriteIfExists);
 int32_t			midiFileSetTracksDefaultChannel(MIDI_FILE *pMF, MIDI_FILE* _pMFembedded, int32_t iTrack, int32_t iChannel, BOOL embedded);
 int32_t			midiFileGetTracksDefaultChannel(const MIDI_FILE *pMF, MIDI_FILE* _pMFembedded, int32_t iTrack, BOOL embedded);
