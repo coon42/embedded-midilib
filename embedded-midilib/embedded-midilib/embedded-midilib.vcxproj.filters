@@ -24,7 +24,7 @@
     <ClCompile Include="..\..\midiutil.c">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\mididump.c">
+    <ClCompile Include="..\..\midiplayer.c">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
