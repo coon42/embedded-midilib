@@ -20,7 +20,10 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- * TODO: support of 'running status' interruption by realtime messages
+ * TODO: - support of 'running status' interruption by realtime messages
+ *       - eliminate strcpy_s() for better portability?
+ *       - abstract FILE type
+ *       - change size_t to int?
  */
 
 #include <stdio.h>
@@ -169,7 +172,6 @@ MIDI_FILE  *midiFileOpen(const char *pFilename) {
 static uint32_t _midiReadVarLen(_MIDI_FILE* pMFembedded, uint32_t* ptrNew, uint32_t* numEmbedded) {
   uint32_t valueEmbedded;
   uint8_t c;
-  uint8_t ptrDiff = 0;
 
   // Variable-length values use the lower 7 bits of a byte for data and the top bit to signal a following data byte. 
   // If the top bit is set to 1 (0x80), then another value byte follows.

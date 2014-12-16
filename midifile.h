@@ -268,9 +268,6 @@ void midiReadInitMessage(MIDI_MSG *pMsg);
 static BOOL _midiValidateTrack(const _MIDI_FILE *pMFembedded, int32_t iTrack);
 static uint32_t _midiReadVarLen(_MIDI_FILE* pMFembedded, uint32_t* ptrNew, uint32_t* numEmbedded);
 static BOOL _midiReadTrackCopyData(_MIDI_FILE* pMFembedded, MIDI_MSG* pMsgEmbedded, uint32_t ptrEmbedded, size_t* szEmbedded, BOOL bCopyPtrData);
-static uint8_t *_midiWriteVarLen(uint8_t *ptr, int32_t n);
-static uint8_t *_midiGetPtr(_MIDI_FILE *pMF, int32_t iTrack, int32_t sz_reqd);
-static int32_t _midiGetLength(int32_t ppqn, int32_t iNoteLen, BOOL bOverride);
 
 
 #endif /* _MIDIFILE_H */
