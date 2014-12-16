@@ -60,8 +60,10 @@ typedef int32_t	  BOOL;
 /*
 ** MIDI Limits
 */
-#define MAX_MIDI_TRACKS			32  // default: 256 (Maximum supported tracks. Can be set to 1 on MIDI type 0 tracks, should be higher than 1 on MIDI type 1 files.
-#define MAX_TRACK_POLYPHONY		1 // default: 64  (Only important for MIDI creation. Can be set to 1, when just playback is used.)
+
+// This parameter should be set as small as possible. Each track will need 60 Bytes of memory.
+// Using 32 Tracks will need about 1KB of RAM.
+#define MAX_MIDI_TRACKS			32  // [default: 32] - Maximum supported tracks. Can be set to 1 on MIDI type 0 tracks, should be at least 1 on MIDI type 1 files.
 
 // Don't change this!
 #define MICROSECONDS_PER_MINUTE 60000000L
@@ -95,7 +97,6 @@ typedef struct 	{
   uint8_t iDefaultChannel;		/* use for write only */
   uint8_t last_status;				/* used for running status */
 
-  MIDI_LAST_NOTE LastNote[MAX_TRACK_POLYPHONY];
 } MIDI_FILE_TRACK;
 
 typedef struct 	{

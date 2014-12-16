@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include "hal_desktop.h" // Use this inlude on desktop machines (Linux, Mac or Windows)
 #include "midifile.h"
 
 
@@ -36,8 +37,8 @@
 _MIDI_FILE _midiFile; // TODO: let the user define and pass the instance, so it is possible to open multiple MIDI files at once?
 
 int32_t readChunkFromFile(FILE* pFile, void* dst, int32_t startPos, size_t num) {
-  fseek(pFile, startPos, SEEK_SET);
-  return fread_s(dst, num, 1, num, pFile); // TODO: word access? Does it increase performance?
+  hal_fseek(pFile, startPos);
+  return hal_fread(dst, num, pFile);
 }
 
 int32_t readByteFromFile(FILE* pFile, uint8_t* dst, int32_t startPos) {
@@ -99,7 +100,7 @@ MIDI_FILE  *midiFileOpen(const char *pFilename) {
   uint32_t ptrNew;
   BOOL bValidFile = FALSE;
 
-  fopen_s(&pFileNew, pFilename, "rb");
+  hal_fopen(&pFileNew, pFilename);
 	if (pFileNew) {
 		/* Is this a valid MIDI file ? */
     ptrNew = 0;
@@ -491,14 +492,14 @@ void midiReadInitMessage(MIDI_MSG *pMsg) {
   pMsg->bImpliedMsg = FALSE;
 }
 
-// TODO: open for write implementation!
+// TODO: 'open for write' implementation!
 BOOL	midiFileClose(MIDI_FILE* _pMFembedded) {
   _VAR_CAST;
   if (!IsFilePtrValid(pMFembedded))			return FALSE;
 
   // TODO: open for writing implementation here!
   if (pMFembedded->pFile)
-    return fclose(pMFembedded->pFile) ? FALSE : TRUE;
+    return hal_fclose(pMFembedded->pFile);
   
   return TRUE;
 }

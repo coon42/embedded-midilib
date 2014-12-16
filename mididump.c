@@ -331,7 +331,6 @@ BOOL playMidiFile(const char *pFilename) {
   int32_t iNumTracks = midiReadGetNumTracks(pMFembedded);
 
   for (int32_t iTrack = 0; iTrack < iNumTracks; iTrack++) {
-    pMFembedded->Track[iTrack].iDefaultChannel = 0;
     midiReadInitMessage(&msgEmbedded[iTrack]);
     midiReadGetNextMessage(pMFembedded, iTrack, &msgEmbedded[iTrack]);
   }
