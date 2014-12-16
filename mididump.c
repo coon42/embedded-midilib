@@ -210,14 +210,15 @@ void onMetaSequencerSpecific(int32_t track, int32_t tick, void* pData, uint32_t 
 
 void onMetaSysEx(int32_t track, int32_t tick, void* pData, uint32_t size) {
   printTrackPrefix(track, tick, "Meta event ----");
+  printf("SysEx = ");
   HexList(pData, size);
   printf("\r\n");
 }
 
 // TODO: Hide the following functions from user
 void dispatchMidiMsg(_MIDI_FILE* midiFile, int32_t track, MIDI_MSG* msg) {
-  int32_t ev = msg->bImpliedMsg ? msg->iImpliedMsg : msg->iType;
-  switch (ev) {
+  int32_t eventType = msg->bImpliedMsg ? msg->iImpliedMsg : msg->iType;
+  switch (eventType) {
     case	msgNoteOff:
       onNoteOff(track, msg->dwAbsPos, msg->MsgData.NoteOff.iChannel, msg->MsgData.NoteOff.iNote);
       break;
@@ -298,7 +299,7 @@ void dispatchMidiMsg(_MIDI_FILE* midiFile, int32_t track, MIDI_MSG* msg) {
         break;
       case	metaSequencerSpecific:
         onMetaSequencerSpecific(track, msg->dwAbsPos,
-          msg->MsgData.MetaEvent.Data.Sequencer.pData, msg->MsgData.MetaEvent.Data.Sequencer.iSize);
+        msg->MsgData.MetaEvent.Data.Sequencer.pData, msg->MsgData.MetaEvent.Data.Sequencer.iSize);
         break;
       }
       break;
@@ -308,22 +309,7 @@ void dispatchMidiMsg(_MIDI_FILE* midiFile, int32_t track, MIDI_MSG* msg) {
       onMetaSysEx(track, msg->dwAbsPos, msg->MsgData.SysEx.pData, msg->MsgData.SysEx.iSize);
       break;
     }
-
-    if (ev == msgSysEx1 || ev == msgSysEx1 || (ev == msgMetaEvent && msg->MsgData.MetaEvent.iType == metaSequencerSpecific)) {
-      // Already done a hex dump
-    }
-    else {
-      /*
-      printf("  [");
-      if (msg->bImpliedMsg) printf("%X!", msg->iImpliedMsg);
-      for (uint32_t j = 0; j < msg->iMsgSize; j++)
-      printf("%X ", msg->data[j]);
-      printf["]");
-      */
-      //printf("\r\n");            
-    }
 }
-
 
 BOOL playMidiFile(const char *pFilename) {
   _MIDI_FILE* pMF;
@@ -338,13 +324,13 @@ BOOL playMidiFile(const char *pFilename) {
   if (!open_success) {
     return FALSE;
   }
-  
+
   static MIDI_MSG msg[MAX_MIDI_TRACKS];
   static MIDI_MSG msgEmbedded[MAX_MIDI_TRACKS];
   int32_t any_track_had_data = 1;
   uint32_t current_midi_tick = 0;
   uint32_t ticks_to_wait = 0;
-  int32_t iNumTracks = midiReadGetNumTracks(pMF, pMFembedded);
+  int32_t iNumTracks = midiReadGetNumTracks(pMF, pMFembedded, TRUE);
 
   for (int32_t i = 0; i< iNumTracks; i++) {
     pMFembedded->Track[i].iDefaultChannel = 0;
