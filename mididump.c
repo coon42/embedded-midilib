@@ -312,14 +312,12 @@ void dispatchMidiMsg(_MIDI_FILE* midiFile, int32_t track, MIDI_MSG* msg) {
 }
 
 BOOL playMidiFile(const char *pFilename) {
-  _MIDI_FILE* pMF;
   _MIDI_FILE* pMFembedded;
   BOOL open_success;
   clock_t timeToWait = 0;
    
-  pMF = midiFileOpen(pFilename, FALSE);
-  pMFembedded = midiFileOpen(pFilename, TRUE);
-  open_success = pMF != NULL;
+  pMFembedded = midiFileOpen(pFilename);
+  open_success = pMFembedded != NULL;
 
   if (!open_success) {
     return FALSE;
@@ -330,15 +328,15 @@ BOOL playMidiFile(const char *pFilename) {
   int32_t any_track_had_data = 1;
   uint32_t current_midi_tick = 0;
   uint32_t ticks_to_wait = 0;
-  int32_t iNumTracks = midiReadGetNumTracks(pMF, pMFembedded, TRUE);
+  int32_t iNumTracks = midiReadGetNumTracks(pMFembedded);
 
-  for (int32_t i = 0; i< iNumTracks; i++) {
-    pMFembedded->Track[i].iDefaultChannel = 0;
-    midiReadInitMessage(&msgEmbedded[i]);
-    midiReadGetNextMessage(pMF, pMFembedded, i, &msg[i], &msgEmbedded[i], TRUE);
+  for (int32_t iTrack = 0; iTrack < iNumTracks; iTrack++) {
+    pMFembedded->Track[iTrack].iDefaultChannel = 0;
+    midiReadInitMessage(&msgEmbedded[iTrack]);
+    midiReadGetNextMessage(pMFembedded, iTrack, &msgEmbedded[iTrack]);
   }
 
-  printf("Midi Format: %d\r\n", pMF->Header.iVersion);
+  printf("Midi Format: %d\r\n", pMFembedded->Header.iVersion);
   printf("Number of tracks: %d\r\n", iNumTracks);
   printf("Start playing...\r\n");
 
@@ -350,7 +348,7 @@ BOOL playMidiFile(const char *pFilename) {
       while (current_midi_tick == pMFembedded->Track[iTrack].pos && pMFembedded->Track[iTrack].ptrNew < pMFembedded->Track[iTrack].pEndNew) {
         dispatchMidiMsg(pMFembedded, iTrack, &msgEmbedded[iTrack]);
 
-        if (midiReadGetNextMessage(pMF, pMFembedded, iTrack, &msg[iTrack], &msgEmbedded[iTrack], TRUE)) {
+        if (midiReadGetNextMessage(pMFembedded, iTrack, &msgEmbedded[iTrack])) {
           any_track_had_data = 1; // 0 ???
         }
       }
@@ -367,8 +365,7 @@ BOOL playMidiFile(const char *pFilename) {
     while (clock() < timeToWait); // just wait here...
     current_midi_tick += ticks_to_wait;
   }
-  midiReadFreeMessage(msg);
-  midiFileClose(pMF, pMFembedded);
+  midiFileClose(pMFembedded);
 
   return TRUE;
 }
