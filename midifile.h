@@ -60,8 +60,8 @@ typedef int32_t	  BOOL;
 /*
 ** MIDI Limits
 */
-#define MAX_MIDI_TRACKS			256
-#define MAX_TRACK_POLYPHONY		64 // Only for MIDI creation?
+#define MAX_MIDI_TRACKS			32  // default: 256 (Maximum supported tracks. Can be set to 1 on MIDI type 0 tracks, should be higher than 1 on MIDI type 1 files.
+#define MAX_TRACK_POLYPHONY		1 // default: 64  (Only important for MIDI creation. Can be set to 1, when just playback is used.)
 
 // Don't change this!
 #define MICROSECONDS_PER_MINUTE 60000000L

@@ -113,7 +113,7 @@ MIDI_FILE  *midiFileOpen(const char *pFilename) {
 
       readDwordFromFile(pFileNew, &dwDataNew, 4);
       _midiFile.Header.iHeaderSize = SWAP_DWORD(dwDataNew);
-					
+
       readWordFromFile(pFileNew, &wDataNew, 8);
       _midiFile.Header.iVersion = (uint16_t)SWAP_WORD(wDataNew);
 					
@@ -129,21 +129,19 @@ MIDI_FILE  *midiFileOpen(const char *pFilename) {
 			*/
 
       // Init
-			for(int i = 0; i < MAX_MIDI_TRACKS; ++i) {
-        _midiFile.Track[i].pos = 0;
-        _midiFile.Track[i].last_status = 0;
+      for (int iTrack = 0; iTrack < MAX_MIDI_TRACKS; ++iTrack) {
+        _midiFile.Track[iTrack].pos = 0;
+        _midiFile.Track[iTrack].last_status = 0;
 			}
 					
-      for (int i = 0; i < _midiFile.Header.iNumTracks; ++i) {
-        _midiFile.Track[i].pBaseNew = ptrNew;
+      for (int iTrack = 0; iTrack < _midiFile.Header.iNumTracks && iTrack < MAX_MIDI_TRACKS; ++iTrack) {
+        _midiFile.Track[iTrack].pBaseNew = ptrNew;
 
         readDwordFromFile(pFileNew, &dwDataNew, ptrNew + 4);
-        _midiFile.Track[i].sz = SWAP_DWORD(dwDataNew);
-
-        _midiFile.Track[i].ptrNew = ptrNew + 8;
-
-        _midiFile.Track[i].pEndNew = ptrNew + _midiFile.Track[i].sz + 8;
-        ptrNew += _midiFile.Track[i].sz + 8;
+        _midiFile.Track[iTrack].sz = SWAP_DWORD(dwDataNew);
+        _midiFile.Track[iTrack].ptrNew = ptrNew + 8;
+        _midiFile.Track[iTrack].pEndNew = ptrNew + _midiFile.Track[iTrack].sz + 8;
+        ptrNew += _midiFile.Track[iTrack].sz + 8;
       }
 
       _midiFile.bOpenForWriting = FALSE;
@@ -210,7 +208,7 @@ static BOOL _midiReadTrackCopyData(_MIDI_FILE* pMFembedded, MIDI_MSG* pMsgEmbedd
 // ok!
 int32_t midiReadGetNumTracks(const MIDI_FILE *_pMFembedded) {
 	_VAR_CAST;
-  return pMFembedded->Header.iNumTracks;
+  return pMFembedded->Header.iNumTracks <= MAX_MIDI_TRACKS ? pMFembedded->Header.iNumTracks : MAX_MIDI_TRACKS;
 }
 
 // looks ok! (running status interruption by realtime messages?)
