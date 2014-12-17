@@ -38,13 +38,12 @@
 #include <inttypes.h>
 
 #pragma comment (lib, "winmm.lib")
+static HMIDIOUT g_hMidiOut;
 
 void HexList(uint8_t *pData, int32_t iNumBytes) {
   for (int32_t i = 0; i < iNumBytes; i++)
     printf("%.2x ", pData[i]);
 }
-
-static HMIDIOUT g_hMidiOut;
 
 // Routine for simplifying MIDI output
 // ------------------------------------

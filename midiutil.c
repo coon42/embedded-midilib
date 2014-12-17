@@ -538,7 +538,7 @@ char *muGetNameFromNote(char *pStr, int32_t iNote) {
 	if (iNote<0 || iNote>127)
 		strcpy_s(pStr, 8, "ERR");
 	else
-		sprintf_s(pStr, 8, "%s%d", szNoteName[iNote%12], ((iNote-MIDI_NOTE_C0)/12));
+		sprintf_s(pStr, 8, "%s%d", szNoteName[iNote%12], ((iNote-MIDI_NOTE_C0) / 12));
 	
 	return pStr;
 }
