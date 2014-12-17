@@ -88,8 +88,8 @@ typedef struct 	{
   uint32_t pBaseNew;
   uint32_t pEndNew;
 
-  uint32_t pos; // TODO: which pos is meant here?
-  uint32_t dt; // TODO: what is this?
+  uint32_t pos; // position of file pointer
+  int32_t deltaTime; // relative offset, when this event occurs. May be negative, if current event is delayed
   /* For Reading MIDI Files */
   uint32_t sz;						/* size of whole iTrack */
   /* For Writing MIDI Files */
@@ -125,7 +125,7 @@ typedef	void 	MIDI_FILE;
 typedef struct {
           tMIDI_MSG	iType;
 
-          uint32_t		dt;		/* delta time */
+          int32_t		dt;		/* delta time */
           uint32_t		dwAbsPos;
           uint32_t		iMsgSize;
 
