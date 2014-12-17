@@ -79,8 +79,8 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\mididump.c" />
     <ClCompile Include="..\..\midifile.c" />
+    <ClCompile Include="..\..\midiplayer.c" />
     <ClCompile Include="..\..\midiutil.c" />
   </ItemGroup>
   <ItemGroup>
