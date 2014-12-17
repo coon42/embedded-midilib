@@ -393,18 +393,18 @@ BOOL playMidiFile2(const char *pFilename) {
     pMFembedded->Track[iTrack].deltaTime = msgEmbedded[iTrack].dt;
   }
   
+  int32_t startTime = clock();
   int32_t currentTick = 0;
-  int32_t lastTick = clock();
+  int32_t lastTick = 0;
   int32_t deltaTick; // set to unsigned later! singed only for debugging.
   BOOL eventsNeedToBeFetched = FALSE;
   BOOL trackIsFinished;
 
   while (TRUE) {
-    currentTick += (clock() / pMFembedded->msPerTick - lastTick);
+    currentTick = (clock() - startTime) / pMFembedded->msPerTick;
     eventsNeedToBeFetched = TRUE;
     while (eventsNeedToBeFetched) { // This loop keeps all tracks synchronized in case of a lag
       eventsNeedToBeFetched = FALSE;
-
       deltaTick = currentTick - lastTick;                             
       if (deltaTick < 0) printf("DEBUG: bug in delta tick: deltaTick=%d\r\n", deltaTick);
 
