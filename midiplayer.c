@@ -36,6 +36,7 @@
 #include "midifile.h"
 #include "midiutil.h"
 #include <inttypes.h>
+#include <math.h>
 
 #pragma comment (lib, "winmm.lib")
 static HMIDIOUT g_hMidiOut;
@@ -396,32 +397,46 @@ BOOL playMidiFile2(const char *pFilename) {
   int32_t startTime = clock();
   int32_t currentTick = 0;
   int32_t lastTick = 0;
-  int32_t deltaTick; // set to unsigned later! singed only for debugging.
+  int32_t deltaTick; // Must NEVER be negative!!!
   BOOL eventsNeedToBeFetched = FALSE;
   BOOL trackIsFinished;
+  BOOL allTracksAreFinished = FALSE;
+  float lastMsPerTick = pMFembedded->msPerTick;
+  float timeScaleFactor = 1.0f;
 
-  while (TRUE) {
+  while (!allTracksAreFinished) {
+    if (fabs(lastMsPerTick - pMFembedded->msPerTick) > 0.01f) {
+      // On a tempo change we need to transform the old absolute time scale to the new scale.
+      timeScaleFactor = lastMsPerTick / pMFembedded->msPerTick;
+      lastTick *= timeScaleFactor;
+    }
+
+    lastMsPerTick = pMFembedded->msPerTick;
     currentTick = (clock() - startTime) / pMFembedded->msPerTick;
     eventsNeedToBeFetched = TRUE;
     while (eventsNeedToBeFetched) { // This loop keeps all tracks synchronized in case of a lag
       eventsNeedToBeFetched = FALSE;
-      deltaTick = currentTick - lastTick;                             
+      allTracksAreFinished = TRUE;
+      deltaTick = currentTick - lastTick;
       if (deltaTick < 0) printf("DEBUG: bug in delta tick: deltaTick=%d\r\n", deltaTick);
 
       for (int iTrack = 0; iTrack < iNumTracks; iTrack++) {
         pMFembedded->Track[iTrack].deltaTime -= deltaTick;
         trackIsFinished = pMFembedded->Track[iTrack].ptrNew == pMFembedded->Track[iTrack].pEndNew;
 
-        if (pMFembedded->Track[iTrack].deltaTime <= 0 && !trackIsFinished) { // Is it time to play this event?
-          dispatchMidiMsg(pMFembedded, iTrack, &msgEmbedded[iTrack]); // shoot
-          midiReadGetNextMessage(pMFembedded, iTrack, &msgEmbedded[iTrack]); // reload
-          pMFembedded->Track[iTrack].deltaTime += msgEmbedded[iTrack].dt;
+        if (!trackIsFinished) {
+          if (pMFembedded->Track[iTrack].deltaTime <= 0 && !trackIsFinished) { // Is it time to play this event?
+            dispatchMidiMsg(pMFembedded, iTrack, &msgEmbedded[iTrack]); // shoot
+            midiReadGetNextMessage(pMFembedded, iTrack, &msgEmbedded[iTrack]); // reload
+            pMFembedded->Track[iTrack].deltaTime += msgEmbedded[iTrack].dt;
+          }
+
+          if (pMFembedded->Track[iTrack].deltaTime <= 0 && !trackIsFinished)
+            eventsNeedToBeFetched = TRUE;
+
+          allTracksAreFinished = FALSE;
         }
-
-        if (pMFembedded->Track[iTrack].deltaTime <= 0 && !trackIsFinished)
-          eventsNeedToBeFetched = TRUE;
-
-        lastTick = currentTick;
+        lastTick = currentTick; // Is not set, if there is no event to be dispatched. TODO: make more explicit?
       }
     }
   }
