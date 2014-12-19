@@ -31,26 +31,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
-#include <mmsystem.h>
 #include <time.h>
 #include "midifile.h"
 #include "midiutil.h"
-#include <inttypes.h>
+#include <stdint.h>
 #include <math.h>
-
-#pragma comment (lib, "winmm.lib")
-static HMIDIOUT g_hMidiOut;
 
 void HexList(uint8_t *pData, int32_t iNumBytes) {
   for (int32_t i = 0; i < iNumBytes; i++)
     printf("%.2x ", pData[i]);
-}
-
-// Routine for simplifying MIDI output
-// ------------------------------------
-uint32_t MidiOutMessage(int32_t iStatus, int32_t iChannel, int32_t iData1, int32_t iData2) {
-  uint32_t dwMessage = iStatus | iChannel - 1 | (iData1 << 8) | (iData2 << 16);
-  return midiOutShortMsg(g_hMidiOut, dwMessage);
 }
 
 void printTrackPrefix(uint32_t track, uint32_t tick, char* pEventName)  {
@@ -127,46 +116,37 @@ void onMetaSequenceNumber(int32_t track, int32_t tick, int32_t sequenceNumber) {
   printf("\r\n");
 }
 
-void onMetaTextEvent(int32_t track, int32_t tick, char* pText) {
+void _onTextEvents(int32_t track, int32_t tick, const char* textType, const char* pText) {
   printTrackPrefix(track, tick, "Meta event ----");
-  printf("Text = '%s'", pText);
-  printf("\r\n");
+  hal_printInfo("%s = %s", textType, pText);
+}
+
+void onMetaTextEvent(int32_t track, int32_t tick, char* pText) {
+  _onTextEvents(track, tick, "Text", pText);
 }
 
 void onMetaCopyright(int32_t track, int32_t tick, char* pText) {
-  printTrackPrefix(track, tick, "Meta event ----");
-  printf("Copyright = '%s'", pText);
-  printf("\r\n");
+  _onTextEvents(track, tick, "Copyright ", pText);
 }
 
 void onMetaTrackName(int32_t track, int32_t tick, char *pText) {
-  printTrackPrefix(track, tick, "Meta event ----");
-  printf("Track name = '%s'", pText);
-  printf("\r\n");
+  _onTextEvents(track, tick, "Track name", pText);
 }
 
 void onMetaInstrument(int32_t track, int32_t tick, char *pText) {
-  printTrackPrefix(track, tick, "Meta event ----");
-  printf("Instrument = '%s'", pText);
-  printf("\r\n");
+  _onTextEvents(track, tick, "Instrument", pText);
 }
 
 void onMetaLyric(int32_t track, int32_t tick, char *pText) {
-  printTrackPrefix(track, tick, "Meta event ----");
-  printf("Lyric = '%s'", pText);
-  printf("\r\n");
+  _onTextEvents(track, tick, "Lyric", pText);
 }
 
 void onMetaMarker(int32_t track, int32_t tick, char *pText) {
-  printTrackPrefix(track, tick, "Meta event ----");
-  printf("Marker = '%s'", pText);
-  printf("\r\n");
+  _onTextEvents(track, tick, "Marker", pText);
 }
 
 void onMetaCuePoint(int32_t track, int32_t tick, char *pText) {
-  printTrackPrefix(track, tick, "Meta event ----");
-  printf("Cue point = '%s'", pText);
-  printf("\r\n");
+  _onTextEvents(track, tick, "Cue point", pText);
 }
 
 void onMetaEndSequence(int32_t track, int32_t tick) {
@@ -418,7 +398,7 @@ BOOL playMidiFile2(const char *pFilename) {
       eventsNeedToBeFetched = FALSE;
       allTracksAreFinished = TRUE;
       deltaTick = currentTick - lastTick;
-      if (deltaTick < 0) printf("DEBUG: bug in delta tick: deltaTick=%d\r\n", deltaTick);
+      if (deltaTick < 0) hal_printfWarning("Warning: deltaTick is negative! deltaTick=%d", deltaTick);
 
       for (int iTrack = 0; iTrack < iNumTracks; iTrack++) {
         pMFembedded->Track[iTrack].deltaTime -= deltaTick;
@@ -440,12 +420,12 @@ BOOL playMidiFile2(const char *pFilename) {
       }
     }
   }
+
+  return TRUE;
 }
 
 int main(int argc, char* argv[]) {
-  uint32_t result = midiOutOpen(&g_hMidiOut, MIDI_MAPPER, 0, 0, 0);
-  if (result != MMSYSERR_NOERROR)
-    printf("MIDI device geht nicht!");
+  hal_init();
 
   if (argc == 1)
     printf("Usage: %s <filename>\n", argv[0]);
@@ -454,12 +434,12 @@ int main(int argc, char* argv[]) {
       char* midiFileName = argv[i];
       printf("Playing file: '%s'\r\n", midiFileName);
       if (playMidiFile2(midiFileName))
-        printf("Playback finished.\r\n");
+        hal_printfSuccess("Playback finished.");
       else
-        printf("Playback failed!\r\n");
+        hal_printfError("Playback failed!");
     }
   }
   
-  midiOutClose(g_hMidiOut);
+  hal_free();
   return 0;
 }

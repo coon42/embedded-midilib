@@ -84,7 +84,7 @@
     <ClCompile Include="..\..\midiutil.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\hal_desktop.h" />
+    <ClInclude Include="..\..\hal_windows.h" />
     <ClInclude Include="..\..\midifile.h" />
     <ClInclude Include="..\..\midiutil.h" />
   </ItemGroup>

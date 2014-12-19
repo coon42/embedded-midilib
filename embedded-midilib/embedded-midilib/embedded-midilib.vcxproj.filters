@@ -35,7 +35,7 @@
     <ClInclude Include="..\..\midiutil.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\hal_desktop.h">
+    <ClInclude Include="..\..\hal_windows.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
