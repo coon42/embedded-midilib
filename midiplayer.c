@@ -37,6 +37,21 @@
 #include <stdint.h>
 #include <math.h>
 
+
+typedef struct {
+  _MIDI_FILE* pMidiFile;
+  MIDI_MSG msg[MAX_MIDI_TRACKS];
+  int32_t startTime;
+  int32_t currentTick;
+  int32_t lastTick;
+  int32_t deltaTick; // Must NEVER be negative!!!
+  BOOL eventsNeedToBeFetched;
+  BOOL trackIsFinished;
+  BOOL allTracksAreFinished;
+  float lastMsPerTick;
+  float timeScaleFactor;
+} MIDI_PLAYER;
+
 void HexList(uint8_t *pData, int32_t iNumBytes) {
   for (int32_t i = 0; i < iNumBytes; i++)
     printf("%.2x ", pData[i]);
@@ -118,7 +133,7 @@ void onMetaSequenceNumber(int32_t track, int32_t tick, int32_t sequenceNumber) {
 
 void _onTextEvents(int32_t track, int32_t tick, const char* textType, const char* pText) {
   printTrackPrefix(track, tick, "Meta event ----");
-  hal_printInfo("%s = %s", textType, pText);
+  hal_printfInfo("%s = %s", textType, pText);
 }
 
 void onMetaTextEvent(int32_t track, int32_t tick, char* pText) {
@@ -291,136 +306,79 @@ void dispatchMidiMsg(_MIDI_FILE* midiFile, int32_t trackIndex, MIDI_MSG* msg) {
     }
 }
 
-/*
-BOOL playMidiFile(const char *pFilename) {
-  _MIDI_FILE* pMFembedded;
-  int32_t timeToWait = 0;
-   
-  pMFembedded = midiFileOpen(pFilename);
-  if (!pMFembedded) {
+BOOL midiPlayerOpenFile(MIDI_PLAYER* pMidiPlayer, const char* pFileName) {
+  pMidiPlayer->pMidiFile = midiFileOpen(pFileName);
+  if (!pMidiPlayer->pMidiFile)
     return FALSE;
+  
+  // Load initial midi events
+  for (int iTrack = 0; iTrack < midiReadGetNumTracks(pMidiPlayer->pMidiFile); iTrack++) {
+    midiReadGetNextMessage(pMidiPlayer->pMidiFile, iTrack, &pMidiPlayer->msg[iTrack]);
+    pMidiPlayer->pMidiFile->Track[iTrack].deltaTime = pMidiPlayer->msg[iTrack].dt;
   }
 
-  static MIDI_MSG msgEmbedded[MAX_MIDI_TRACKS];
-  BOOL any_track_had_data = TRUE;
-  int32_t current_midi_tick = 0;
-  int32_t ticks_to_wait = 0;
-  int32_t iNumTracks = midiReadGetNumTracks(pMFembedded);
-
-  printf("Midi Format: %d\r\n", pMFembedded->Header.iVersion);
-  printf("Number of tracks: %d\r\n", iNumTracks);
-  printf("Start playing...\r\n");
-
-  // Read initial midi events
-  for (int32_t iTrack = 0; iTrack < iNumTracks; iTrack++)
-    midiReadGetNextMessage(pMFembedded, iTrack, &msgEmbedded[iTrack]);
-
-  while (any_track_had_data) {
-    any_track_had_data = FALSE;
-    ticks_to_wait = -1;
-
-    // Cycle through all tracks
-    for (int32_t iTrack = 0; iTrack < iNumTracks; iTrack++) {
-      BOOL eventHasToBePlayedNow = current_midi_tick == pMFembedded->Track[iTrack].pos;
-      BOOL trackIsFinished = pMFembedded->Track[iTrack].ptrNew >= pMFembedded->Track[iTrack].pEndNew;
-
-      // Process all events of current track for the current tick
-      while (eventHasToBePlayedNow && !trackIsFinished) {
-        dispatchMidiMsg(pMFembedded, iTrack, &msgEmbedded[iTrack]);
-        if (midiReadGetNextMessage(pMFembedded, iTrack, &msgEmbedded[iTrack]))
-          any_track_had_data = TRUE;
-
-        eventHasToBePlayedNow = current_midi_tick == pMFembedded->Track[iTrack].pos;
-        trackIsFinished = pMFembedded->Track[iTrack].ptrNew >= pMFembedded->Track[iTrack].pEndNew;
-      }
-
-      // Get wait time for next event
-      // TODO: make this line of hell readable!
-      BOOL isNextEventInFuture = (int32_t)(pMFembedded->Track[iTrack].pos - current_midi_tick) > 0;
-      BOOL isThisEventEarlierThanTheLastEvent = ticks_to_wait > pMFembedded->Track[iTrack].pos - current_midi_tick;
-
-      if (isNextEventInFuture && isThisEventEarlierThanTheLastEvent)
-        ticks_to_wait = pMFembedded->Track[iTrack].pos - current_midi_tick;
-    }
-
-    if (ticks_to_wait == -1)
-      ticks_to_wait = 0;
-
-    // wait microseconds per tick here
-    timeToWait = clock() + ticks_to_wait * pMFembedded->msPerTick;
-    while (clock() < timeToWait); // just wait here...
-    current_midi_tick += ticks_to_wait;
-  }
-  midiFileClose(pMFembedded);
+  pMidiPlayer->startTime = clock();
+  pMidiPlayer->currentTick = 0;
+  pMidiPlayer->lastTick = 0;
+  pMidiPlayer->deltaTick; // Must NEVER be negative!!!
+  pMidiPlayer->eventsNeedToBeFetched = FALSE;
+  pMidiPlayer->trackIsFinished;
+  pMidiPlayer->allTracksAreFinished = FALSE;
+  pMidiPlayer->lastMsPerTick = pMidiPlayer->pMidiFile->msPerTick;
+  pMidiPlayer->timeScaleFactor = 1.0f;
 
   return TRUE;
 }
-*/
 
-BOOL playMidiFile2(const char *pFilename) {
-  _MIDI_FILE* pMFembedded;
-  static MIDI_MSG msgEmbedded[MAX_MIDI_TRACKS];
-
-  pMFembedded = midiFileOpen(pFilename);
-  if (!pMFembedded) {
-    return FALSE;
+BOOL midiPlayerTick(MIDI_PLAYER* pMidiPlayer) {
+  if (fabs(pMidiPlayer->lastMsPerTick - pMidiPlayer->pMidiFile->msPerTick) > 0.01f) {
+    // On a tempo change we need to transform the old absolute time scale to the new scale.
+    pMidiPlayer->timeScaleFactor = pMidiPlayer->lastMsPerTick / pMidiPlayer->pMidiFile->msPerTick;
+    pMidiPlayer->lastTick *= pMidiPlayer->timeScaleFactor;
   }
 
-  int32_t iNumTracks = midiReadGetNumTracks(pMFembedded);
+  pMidiPlayer->lastMsPerTick = pMidiPlayer->pMidiFile->msPerTick;
+  pMidiPlayer->currentTick = (clock() - pMidiPlayer->startTime) / pMidiPlayer->pMidiFile->msPerTick;
+  pMidiPlayer->eventsNeedToBeFetched = TRUE;
+  while (pMidiPlayer->eventsNeedToBeFetched) { // This loop keeps all tracks synchronized in case of a lag
+    pMidiPlayer->eventsNeedToBeFetched = FALSE;
+    pMidiPlayer->allTracksAreFinished = TRUE;
+    pMidiPlayer->deltaTick = pMidiPlayer->currentTick - pMidiPlayer->lastTick;
+    if (pMidiPlayer->deltaTick < 0) hal_printfWarning("Warning: deltaTick is negative! deltaTick=%d", pMidiPlayer->deltaTick);
 
-  // Load initial midi events
-  for (int iTrack = 0; iTrack < iNumTracks; iTrack++) {
-    midiReadGetNextMessage(pMFembedded, iTrack, &msgEmbedded[iTrack]);
-    pMFembedded->Track[iTrack].deltaTime = msgEmbedded[iTrack].dt;
-  }
-  
-  int32_t startTime = clock();
-  int32_t currentTick = 0;
-  int32_t lastTick = 0;
-  int32_t deltaTick; // Must NEVER be negative!!!
-  BOOL eventsNeedToBeFetched = FALSE;
-  BOOL trackIsFinished;
-  BOOL allTracksAreFinished = FALSE;
-  float lastMsPerTick = pMFembedded->msPerTick;
-  float timeScaleFactor = 1.0f;
+    for (int iTrack = 0; iTrack < midiReadGetNumTracks(pMidiPlayer->pMidiFile); iTrack++) {
+      pMidiPlayer->pMidiFile->Track[iTrack].deltaTime -= pMidiPlayer->deltaTick;
+      pMidiPlayer->trackIsFinished = pMidiPlayer->pMidiFile->Track[iTrack].ptrNew == pMidiPlayer->pMidiFile->Track[iTrack].pEndNew;
 
-  while (!allTracksAreFinished) {
-    if (fabs(lastMsPerTick - pMFembedded->msPerTick) > 0.01f) {
-      // On a tempo change we need to transform the old absolute time scale to the new scale.
-      timeScaleFactor = lastMsPerTick / pMFembedded->msPerTick;
-      lastTick *= timeScaleFactor;
-    }
-
-    lastMsPerTick = pMFembedded->msPerTick;
-    currentTick = (clock() - startTime) / pMFembedded->msPerTick;
-    eventsNeedToBeFetched = TRUE;
-    while (eventsNeedToBeFetched) { // This loop keeps all tracks synchronized in case of a lag
-      eventsNeedToBeFetched = FALSE;
-      allTracksAreFinished = TRUE;
-      deltaTick = currentTick - lastTick;
-      if (deltaTick < 0) hal_printfWarning("Warning: deltaTick is negative! deltaTick=%d", deltaTick);
-
-      for (int iTrack = 0; iTrack < iNumTracks; iTrack++) {
-        pMFembedded->Track[iTrack].deltaTime -= deltaTick;
-        trackIsFinished = pMFembedded->Track[iTrack].ptrNew == pMFembedded->Track[iTrack].pEndNew;
-
-        if (!trackIsFinished) {
-          if (pMFembedded->Track[iTrack].deltaTime <= 0 && !trackIsFinished) { // Is it time to play this event?
-            dispatchMidiMsg(pMFembedded, iTrack, &msgEmbedded[iTrack]); // shoot
-            midiReadGetNextMessage(pMFembedded, iTrack, &msgEmbedded[iTrack]); // reload
-            pMFembedded->Track[iTrack].deltaTime += msgEmbedded[iTrack].dt;
-          }
-
-          if (pMFembedded->Track[iTrack].deltaTime <= 0 && !trackIsFinished)
-            eventsNeedToBeFetched = TRUE;
-
-          allTracksAreFinished = FALSE;
+      if (!pMidiPlayer->trackIsFinished) {
+        if (pMidiPlayer->pMidiFile->Track[iTrack].deltaTime <= 0 && !pMidiPlayer->trackIsFinished) { // Is it time to play this event?
+          dispatchMidiMsg(pMidiPlayer->pMidiFile, iTrack, &pMidiPlayer->msg[iTrack]); // shoot
+          midiReadGetNextMessage(pMidiPlayer->pMidiFile, iTrack, &pMidiPlayer->msg[iTrack]); // reload
+          pMidiPlayer->pMidiFile->Track[iTrack].deltaTime += pMidiPlayer->msg[iTrack].dt;
         }
-        lastTick = currentTick; // Is not set, if there is no event to be dispatched. TODO: make more explicit?
+
+        if (pMidiPlayer->pMidiFile->Track[iTrack].deltaTime <= 0 && !pMidiPlayer->trackIsFinished)
+          pMidiPlayer->eventsNeedToBeFetched = TRUE;
+
+        pMidiPlayer->allTracksAreFinished = FALSE;
       }
+      pMidiPlayer->lastTick = pMidiPlayer->currentTick; // Is not set, if there is no event to be dispatched. TODO: make more explicit?
     }
   }
 
+  return !pMidiPlayer->allTracksAreFinished;
+}
+
+BOOL playMidiFile(const char *pFilename) {
+  static MIDI_PLAYER mpl;
+  if (!midiPlayerOpenFile(&mpl, pFilename))
+    return FALSE;
+  
+  hal_printfInfo("Midi Format: %d", mpl.pMidiFile->Header.iVersion);
+  hal_printfInfo("Number of tracks: %d", midiReadGetNumTracks(mpl.pMidiFile));
+  hal_printfSuccess("Start playing...");
+  
+  while (midiPlayerTick(&mpl));
   return TRUE;
 }
 
@@ -433,7 +391,7 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) {
       char* midiFileName = argv[i];
       printf("Playing file: '%s'\r\n", midiFileName);
-      if (playMidiFile2(midiFileName))
+      if (playMidiFile(midiFileName))
         hal_printfSuccess("Playback finished.");
       else
         hal_printfError("Playback failed!");

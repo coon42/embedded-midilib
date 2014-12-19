@@ -56,7 +56,7 @@ void hal_printfSuccess(char* format, ...) {
   va_end(args);
 }
 
-void hal_printInfo(char* format, ...) {
+void hal_printfInfo(char* format, ...) {
   char formattedText[512];
 
   va_list args;
