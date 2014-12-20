@@ -22,7 +22,8 @@
 *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 *
-* TODO: rename midi events to standard names
+* TODO: - rename midi events to standard names
+*       - avoid floating point operations on playback
 *
 */
 
@@ -172,8 +173,7 @@ void onMetaEndSequence(int32_t track, int32_t tick) {
 
 void onMetaSetTempo(int32_t track, int32_t tick, int32_t bpm) {
   printTrackPrefix(track, tick, "Meta event ----");
-  printf("Tempo = %d", bpm);
-  printf("\r\n");
+  hal_printfWarning("Tempo = %d bpm", bpm);
 }
 
 void onMetaSMPTEOffset(int32_t track, int32_t tick, uint32_t hours, uint32_t minutes, uint32_t seconds, uint32_t frames, uint32_t subframes) {
@@ -317,7 +317,7 @@ BOOL midiPlayerOpenFile(MIDI_PLAYER* pMidiPlayer, const char* pFileName) {
     pMidiPlayer->pMidiFile->Track[iTrack].deltaTime = pMidiPlayer->msg[iTrack].dt;
   }
 
-  pMidiPlayer->startTime = clock();
+  pMidiPlayer->startTime = hal_clock();
   pMidiPlayer->currentTick = 0;
   pMidiPlayer->lastTick = 0;
   pMidiPlayer->deltaTick; // Must NEVER be negative!!!
@@ -331,20 +331,24 @@ BOOL midiPlayerOpenFile(MIDI_PLAYER* pMidiPlayer, const char* pFileName) {
 }
 
 BOOL midiPlayerTick(MIDI_PLAYER* pMidiPlayer) {
-  if (fabs(pMidiPlayer->lastMsPerTick - pMidiPlayer->pMidiFile->msPerTick) > 0.01f) {
+  if (fabs(pMidiPlayer->lastMsPerTick - pMidiPlayer->pMidiFile->msPerTick) > 0.001f) { // TODO: avoid floating point operation here!
     // On a tempo change we need to transform the old absolute time scale to the new scale.
     pMidiPlayer->timeScaleFactor = pMidiPlayer->lastMsPerTick / pMidiPlayer->pMidiFile->msPerTick;
     pMidiPlayer->lastTick *= pMidiPlayer->timeScaleFactor;
   }
 
   pMidiPlayer->lastMsPerTick = pMidiPlayer->pMidiFile->msPerTick;
-  pMidiPlayer->currentTick = (clock() - pMidiPlayer->startTime) / pMidiPlayer->pMidiFile->msPerTick;
+  pMidiPlayer->currentTick = (hal_clock() - pMidiPlayer->startTime) / pMidiPlayer->pMidiFile->msPerTick;
   pMidiPlayer->eventsNeedToBeFetched = TRUE;
   while (pMidiPlayer->eventsNeedToBeFetched) { // This loop keeps all tracks synchronized in case of a lag
     pMidiPlayer->eventsNeedToBeFetched = FALSE;
     pMidiPlayer->allTracksAreFinished = TRUE;
     pMidiPlayer->deltaTick = pMidiPlayer->currentTick - pMidiPlayer->lastTick;
-    if (pMidiPlayer->deltaTick < 0) hal_printfWarning("Warning: deltaTick is negative! deltaTick=%d", pMidiPlayer->deltaTick);
+    if (pMidiPlayer->deltaTick < 0) {
+      hal_printfWarning("Warning: deltaTick is negative! Fast forward? deltaTick=%d", pMidiPlayer->deltaTick);
+      // TODO: correct time here!
+      pMidiPlayer->deltaTick = 0;
+    }
 
     for (int iTrack = 0; iTrack < midiReadGetNumTracks(pMidiPlayer->pMidiFile); iTrack++) {
       pMidiPlayer->pMidiFile->Track[iTrack].deltaTime -= pMidiPlayer->deltaTick;
@@ -362,11 +366,11 @@ BOOL midiPlayerTick(MIDI_PLAYER* pMidiPlayer) {
 
         pMidiPlayer->allTracksAreFinished = FALSE;
       }
-      pMidiPlayer->lastTick = pMidiPlayer->currentTick; // Is not set, if there is no event to be dispatched. TODO: make more explicit?
+      pMidiPlayer->lastTick = pMidiPlayer->currentTick;
     }
   }
 
-  return !pMidiPlayer->allTracksAreFinished;
+  return !pMidiPlayer->allTracksAreFinished; // TODO: close file
 }
 
 BOOL playMidiFile(const char *pFilename) {
@@ -397,7 +401,8 @@ int main(int argc, char* argv[]) {
         hal_printfError("Playback failed!");
     }
   }
-  
+ 
+
   hal_free();
   return 0;
 }

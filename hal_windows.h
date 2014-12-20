@@ -13,6 +13,12 @@
 
 static HMIDIOUT hMidiOut;
 
+
+
+uint32_t hal_clock() {
+  return clock();
+}
+
 // Colored debugging print functions
 static void _printColored(const char* text, uint16_t colorAttributes) {
   HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);

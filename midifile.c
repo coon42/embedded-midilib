@@ -24,6 +24,7 @@
  *       - eliminate strcpy_s() for better portability?
  *       - abstract FILE type / FILE type needs an instance on microcontroller
  *       - change size_t to int?
+ *       - change iBPM to imBPM to increase accuracy of tempo?
  */
 
 #include <stdio.h>
