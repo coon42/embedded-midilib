@@ -40,9 +40,67 @@
 // -----------------------------------
 _MIDI_FILE _midiFile; // TODO: let the user define and pass the instance, so it is possible to open multiple MIDI files at once?
 
-int32_t readChunkFromFile(FILE* pFile, void* dst, int32_t startPos, size_t num) {
-  hal_fseek(pFile, startPos);
-  return hal_fread(dst, num, pFile);
+
+// cache
+static uint8_t g_cache[PLAYBACK_CACHE_SIZE];
+static int32_t g_cacheStartPos = 0;
+static int32_t g_cacheEndPos = 0;
+static BOOL cacheInitialized = FALSE;
+
+
+void onCacheMiss(uint32_t reqStartPos, uint32_t reqNumBytes, uint32_t cachePosOnReq, uint32_t cacheSize) {
+  hal_printfWarning("Cache Miss: requested: %d bytes from %d, cache was at %d with a size of %d!\r\n",
+    reqNumBytes, reqStartPos, cachePosOnReq, cacheSize);
+}
+
+BOOL requestedChunkStartIsInCache(int32_t startPos, int32_t reqSize, int32_t cacheStartPos, int32_t cacheSize) {
+  return startPos >= cacheStartPos && startPos < cacheStartPos + cacheSize;
+}
+
+uint32_t readDataToCache(FILE* pFile, uint8_t* cache, int32_t startPos, int32_t num) {
+  g_cacheStartPos = startPos;
+  cacheInitialized = TRUE;
+  hal_fseek(pFile, startPos); 
+  return hal_fread(cache, num, pFile);
+}
+
+uint32_t readChunkFromCache(void* dst, uint8_t* cache, uint32_t cacheStartPos, int32_t startPos, int32_t num) {
+  // This functions reads data from cache and returns the number of bytes read.
+  // If the requested chunk is not in cache, 0 will be returned.
+  int32_t startPosInCache = startPos - cacheStartPos;
+  int32_t bytesToRead = num <= PLAYBACK_CACHE_SIZE ? num : PLAYBACK_CACHE_SIZE;
+
+  if (!cacheInitialized || !requestedChunkStartIsInCache(startPos, num, cacheStartPos, PLAYBACK_CACHE_SIZE))
+    return 0;
+
+  memcpy(dst, &cache[startPos - cacheStartPos], bytesToRead); // requested data is in cache
+  return bytesToRead;
+}
+
+int32_t readChunkFromFile(FILE* pFile, uint8_t* dst, int32_t startPos, size_t num) {
+  uint32_t bytesReadTotal = 0;
+  uint32_t bytesRead = 0;
+  while (num) {
+    bytesRead = readChunkFromCache(dst, g_cache, g_cacheStartPos, startPos, num); 
+    bytesReadTotal += bytesRead;
+    startPos += bytesRead;
+    dst += bytesRead;
+    num -= bytesRead;
+
+    if (num) {
+      // For an unknown reason, sometimes after caching, a few bytes earlier are requested, which will result
+      // Into another cache miss. To prevent this unnecessary cache miss, a few bytes earlicher, from the 
+      // requested starting position will be cached.
+      // TODO: find out, which access causes this!
+      onCacheMiss(startPos, num, g_cacheStartPos, PLAYBACK_CACHE_SIZE);
+      bytesRead = readDataToCache(pFile, g_cache, startPos > 8 ? startPos - 8 : startPos, PLAYBACK_CACHE_SIZE);
+
+      if (bytesRead == 0) // end of file?
+        hal_printfWarning("Warning, tried to read over end of file!\r\n");
+    }
+  }
+
+  return bytesReadTotal;
 }
 
 int32_t readByteFromFile(FILE* pFile, uint8_t* dst, int32_t startPos) {
