@@ -38,7 +38,6 @@
 #include <stdint.h>
 #include <math.h>
 
-
 typedef struct {
   _MIDI_FILE* pMidiFile;
   MIDI_MSG msg[MAX_MIDI_TRACKS];
@@ -331,6 +330,9 @@ BOOL midiPlayerOpenFile(MIDI_PLAYER* pMidiPlayer, const char* pFileName) {
 }
 
 BOOL midiPlayerTick(MIDI_PLAYER* pMidiPlayer) {
+  if (pMidiPlayer->pMidiFile == NULL)
+    return FALSE;
+
   if (fabs(pMidiPlayer->lastMsPerTick - pMidiPlayer->pMidiFile->msPerTick) > 0.001f) { // TODO: avoid floating point operation here!
     // On a tempo change we need to transform the old absolute time scale to the new scale.
     pMidiPlayer->timeScaleFactor = pMidiPlayer->lastMsPerTick / pMidiPlayer->pMidiFile->msPerTick;
@@ -373,18 +375,23 @@ BOOL midiPlayerTick(MIDI_PLAYER* pMidiPlayer) {
   return !pMidiPlayer->allTracksAreFinished; // TODO: close file
 }
 
+static MIDI_PLAYER mpl;
 BOOL playMidiFile(const char *pFilename) {
-  static MIDI_PLAYER mpl;
   if (!midiPlayerOpenFile(&mpl, pFilename))
     return FALSE;
   
   hal_printfInfo("Midi Format: %d", mpl.pMidiFile->Header.iVersion);
   hal_printfInfo("Number of tracks: %d", midiReadGetNumTracks(mpl.pMidiFile));
   hal_printfSuccess("Start playing...");
-  
-  while (midiPlayerTick(&mpl));
   return TRUE;
 }
+
+enum {
+  REG_1 = 0x01,
+  REG_2 = 0x02,
+  REG_3 = 0x02
+} test;
+
 
 int main(int argc, char* argv[]) {
   hal_init();
@@ -395,13 +402,17 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) {
       char* midiFileName = argv[i];
       printf("Playing file: '%s'\r\n", midiFileName);
-      if (playMidiFile(midiFileName))
-        hal_printfSuccess("Playback finished.");
-      else
+      if (!playMidiFile(midiFileName)) {
         hal_printfError("Playback failed!");
+        return 1;
+      }
+
+      while (midiPlayerTick(&mpl));
+      hal_printfSuccess("Playback finished!");
     }
   }
  
+  
 
   hal_free();
   return 0;
