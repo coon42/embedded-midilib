@@ -48,10 +48,8 @@ static int32_t g_cacheEndPos = 0;
 static BOOL cacheInitialized = FALSE;
 
 void onCacheMiss(uint32_t reqStartPos, uint32_t reqNumBytes, uint32_t cachePosOnReq, uint32_t cacheSize) {
-  /*
   hal_printfWarning("Cache Miss: requested: %d bytes from %d, cache was at %d with a size of %d!\r\n",
     reqNumBytes, reqStartPos, cachePosOnReq, cacheSize);
-  */
 }
 
 BOOL requestedChunkStartIsInCache(int32_t startPos, int32_t reqSize, int32_t cacheStartPos, int32_t cacheSize) {
@@ -163,6 +161,7 @@ MIDI_FILE  *midiFileOpen(const char *pFilename) {
   FILE *pFileNew = NULL;
   uint32_t ptrNew;
   BOOL bValidFile = FALSE;
+  cacheInitialized = FALSE; // invalidate cache
 
   hal_fopen(&pFileNew, pFilename);
   if (pFileNew) {
@@ -218,7 +217,8 @@ MIDI_FILE  *midiFileOpen(const char *pFilename) {
     return NULL;
  
   _midiFile.pFile = pFileNew;
-  cacheInitialized = FALSE; // invalidate cache
+   
+  //cacheInitialized = FALSE; // invalidate cache (somethings screws up timing, when invalidating cache here!)
 
   setPlaybackTempo(&_midiFile, MIDI_BPM_DEFAULT);
   setPlaybackTempo(&_midiFile, MIDI_BPM_DEFAULT);

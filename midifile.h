@@ -48,7 +48,7 @@ typedef int32_t	  BOOL;
 #endif
 
 // Cache
-#define PLAYBACK_CACHE_SIZE 2342 // 1024 byte cache
+#define PLAYBACK_CACHE_SIZE 10 * 1024 // 10KB cache
 
 // Embedded Constants
 #define META_EVENT_MAX_DATA_SIZE 128 // The meta event size must be at least 5 bytes long, to store: variable 4 byte length, 1 byte event id.
