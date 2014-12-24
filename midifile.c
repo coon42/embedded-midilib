@@ -41,16 +41,17 @@
 _MIDI_FILE _midiFile; // TODO: let the user define and pass the instance, so it is possible to open multiple MIDI files at once?
 
 
-// cache
+// cache (Only for midi 0 files!)
 static uint8_t g_cache[PLAYBACK_CACHE_SIZE];
 static int32_t g_cacheStartPos = 0;
 static int32_t g_cacheEndPos = 0;
 static BOOL cacheInitialized = FALSE;
 
-
 void onCacheMiss(uint32_t reqStartPos, uint32_t reqNumBytes, uint32_t cachePosOnReq, uint32_t cacheSize) {
+  /*
   hal_printfWarning("Cache Miss: requested: %d bytes from %d, cache was at %d with a size of %d!\r\n",
     reqNumBytes, reqStartPos, cachePosOnReq, cacheSize);
+  */
 }
 
 BOOL requestedChunkStartIsInCache(int32_t startPos, int32_t reqSize, int32_t cacheStartPos, int32_t cacheSize) {
@@ -80,6 +81,7 @@ uint32_t readChunkFromCache(void* dst, uint8_t* cache, uint32_t cacheStartPos, i
 int32_t readChunkFromFile(FILE* pFile, uint8_t* dst, int32_t startPos, size_t num) {
   uint32_t bytesReadTotal = 0;
   uint32_t bytesRead = 0;
+
   while (num) {
     bytesRead = readChunkFromCache(dst, g_cache, g_cacheStartPos, startPos, num); 
     bytesReadTotal += bytesRead;
@@ -89,9 +91,9 @@ int32_t readChunkFromFile(FILE* pFile, uint8_t* dst, int32_t startPos, size_t nu
 
     if (num) {
       // For an unknown reason, sometimes after caching, a few bytes earlier are requested, which will result
-      // Into another cache miss. To prevent this unnecessary cache miss, a few bytes earlicher, from the 
+      // into another cache miss. To prevent this unnecessary cache miss, a few bytes earlicher, from the 
       // requested starting position will be cached.
-      // TODO: find out, which access causes this!
+      // TODO: Find out, which access causes this!
       onCacheMiss(startPos, num, g_cacheStartPos, PLAYBACK_CACHE_SIZE);
       bytesRead = readDataToCache(pFile, g_cache, startPos > 8 ? startPos - 8 : startPos, PLAYBACK_CACHE_SIZE);
 
@@ -273,8 +275,8 @@ int32_t midiReadGetNumTracks(const MIDI_FILE *_pMFembedded) {
   return pMFembedded->Header.iNumTracks <= MAX_MIDI_TRACKS ? pMFembedded->Header.iNumTracks : MAX_MIDI_TRACKS;
 }
 
-// looks ok! (running status interruption by realtime messages?)
-BOOL midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack,MIDI_MSG* pMsgEmbedded) {
+// looks ok! (TODO: running status interruption by realtime messages?)
+BOOL midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_MSG* pMsgEmbedded) {
   MIDI_FILE_TRACK *pTrackNew;
   uint32_t bptrEmbedded, pMsgDataPtrEmbedded;
   size_t szEmbedded;

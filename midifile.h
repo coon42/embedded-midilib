@@ -100,6 +100,9 @@ typedef struct 	{
   uint8_t iDefaultChannel;		/* use for write only */
   uint8_t last_status;				/* used for running status */
 
+  uint32_t debugLastClock;
+  uint32_t debugLastMsgDt;
+
 } MIDI_FILE_TRACK;
 
 typedef struct 	{
