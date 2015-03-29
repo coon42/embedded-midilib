@@ -2,6 +2,7 @@
 #define _MIDIFILE_H
 
 #include <stdint.h>
+#include <stdio.h>
 #include "midiinfo.h"		/* enumerations and constants for GM */
 
 /*

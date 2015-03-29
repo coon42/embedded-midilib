@@ -27,6 +27,12 @@
     <ClCompile Include="..\..\midiplayer.c">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\main.c">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\hal_midiplayer_windows.c">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\midifile.h">
@@ -35,7 +41,13 @@
     <ClInclude Include="..\..\midiutil.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\hal_windows.h">
+    <ClInclude Include="..\..\midiplayer.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\main.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\hal_midiplayer_windows.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

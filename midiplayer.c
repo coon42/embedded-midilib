@@ -27,30 +27,17 @@
 *
 */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
 #include <time.h>
-#include "midifile.h"
-#include "midiutil.h"
 #include <stdint.h>
 #include <math.h>
-
-typedef struct {
-  _MIDI_FILE* pMidiFile;
-  MIDI_MSG msg[MAX_MIDI_TRACKS];
-  int32_t startTime;
-  int32_t currentTick;
-  int32_t lastTick;
-  int32_t deltaTick; // Must NEVER be negative!!!
-  BOOL eventsNeedToBeFetched;
-  BOOL trackIsFinished;
-  BOOL allTracksAreFinished;
-  float lastMsPerTick;
-  float timeScaleFactor;
-} MIDI_PLAYER;
+#include "midifile.h"
+#include "midiutil.h"
+#include "midiplayer.h"
+#include "hal_midiplayer_win32.h"
 
 void HexList(uint8_t *pData, int32_t iNumBytes) {
   for (int32_t i = 0; i < iNumBytes; i++)
@@ -209,7 +196,6 @@ void onMetaSysEx(int32_t track, int32_t tick, void* pData, uint32_t size) {
   printf("\r\n");
 }
 
-// TODO: Hide the following functions from user
 void dispatchMidiMsg(_MIDI_FILE* midiFile, int32_t trackIndex, MIDI_MSG* msg) {
   int32_t eventType = msg->bImpliedMsg ? msg->iImpliedMsg : msg->iType;
   switch (eventType) {
@@ -393,45 +379,12 @@ BOOL midiPlayerTick(MIDI_PLAYER* pMidiPlayer) {
   return !pMp->allTracksAreFinished; // TODO: close file
 }
 
-static MIDI_PLAYER mpl;
-BOOL playMidiFile(const char *pFilename) {
-  if (!midiPlayerOpenFile(&mpl, pFilename))
+BOOL playMidiFile(MIDI_PLAYER* pMidiPlayer, const char *pFilename) {
+  if (!midiPlayerOpenFile(pMidiPlayer, pFilename))
     return FALSE;
   
-  hal_printfInfo("Midi Format: %d", mpl.pMidiFile->Header.iVersion);
-  hal_printfInfo("Number of tracks: %d", midiReadGetNumTracks(mpl.pMidiFile));
+  hal_printfInfo("Midi Format: %d", pMidiPlayer->pMidiFile->Header.iVersion);
+  hal_printfInfo("Number of tracks: %d", midiReadGetNumTracks(pMidiPlayer->pMidiFile));
   hal_printfSuccess("Start playing...");
   return TRUE;
-}
-
-enum {
-  REG_1 = 0x01,
-  REG_2 = 0x02,
-  REG_3 = 0x02
-} test;
-
-
-int main(int argc, char* argv[]) {
-  hal_init();
-
-  if (argc == 1)
-    printf("Usage: %s <filename>\n", argv[0]);
-  else {
-    for (int i = 1; i < argc; ++i) {
-      char* midiFileName = argv[i];
-      printf("Playing file: '%s'\r\n", midiFileName);
-      if (!playMidiFile(midiFileName)) {
-        hal_printfError("Playback failed!");
-        return 1;
-      }
-
-      while (midiPlayerTick(&mpl));
-      hal_printfSuccess("Playback finished!");
-    }
-  }
- 
-  
-
-  hal_free();
-  return 0;
 }

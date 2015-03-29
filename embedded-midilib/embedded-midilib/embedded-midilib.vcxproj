@@ -79,13 +79,17 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\hal_midiplayer_windows.c" />
+    <ClCompile Include="..\..\main.c" />
     <ClCompile Include="..\..\midifile.c" />
     <ClCompile Include="..\..\midiplayer.c" />
     <ClCompile Include="..\..\midiutil.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\hal_windows.h" />
+    <ClInclude Include="..\..\hal_midiplayer_windows.h" />
+    <ClInclude Include="..\..\main.h" />
     <ClInclude Include="..\..\midifile.h" />
+    <ClInclude Include="..\..\midiplayer.h" />
     <ClInclude Include="..\..\midiutil.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

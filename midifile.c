@@ -31,15 +31,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include "hal_windows.h" // Use this inlude on desktop machines (Linux, Mac or Windows)
 #include "midifile.h"
-
+#include "hal_midiplayer_win32.h"
 
 // -----------------------------------
 // Global variables and new functions
 // -----------------------------------
 _MIDI_FILE _midiFile; // TODO: let the user define and pass the instance, so it is possible to open multiple MIDI files at once?
-
 
 // cache (Only for midi 0 files!)
 static uint8_t g_cache[PLAYBACK_CACHE_SIZE];
@@ -48,8 +46,8 @@ static int32_t g_cacheEndPos = 0;
 static BOOL cacheInitialized = FALSE;
 
 void onCacheMiss(uint32_t reqStartPos, uint32_t reqNumBytes, uint32_t cachePosOnReq, uint32_t cacheSize) {
-  hal_printfWarning("Cache Miss: requested: %d bytes from %d, cache was at %d with a size of %d!\r\n",
-    reqNumBytes, reqStartPos, cachePosOnReq, cacheSize);
+  // hal_printfWarning("Cache Miss: requested: %d bytes from %d, cache was at %d with a size of %d!\r\n",
+  //  reqNumBytes, reqStartPos, cachePosOnReq, cacheSize);
 }
 
 BOOL requestedChunkStartIsInCache(int32_t startPos, int32_t reqSize, int32_t cacheStartPos, int32_t cacheSize) {
@@ -76,7 +74,7 @@ uint32_t readChunkFromCache(void* dst, uint8_t* cache, uint32_t cacheStartPos, i
   return bytesToRead;
 }
 
-int32_t readChunkFromFile(FILE* pFile, uint8_t* dst, int32_t startPos, size_t num) {
+int32_t readChunkFromFile(FILE* pFile, void* dst, int32_t startPos, size_t num) {
   uint32_t bytesReadTotal = 0;
   uint32_t bytesRead = 0;
 
@@ -84,7 +82,7 @@ int32_t readChunkFromFile(FILE* pFile, uint8_t* dst, int32_t startPos, size_t nu
     bytesRead = readChunkFromCache(dst, g_cache, g_cacheStartPos, startPos, num); 
     bytesReadTotal += bytesRead;
     startPos += bytesRead;
-    dst += bytesRead;
+    (uint8_t*)dst += bytesRead;
     num -= bytesRead;
 
     if (num) {
@@ -232,7 +230,7 @@ MIDI_FILE  *midiFileOpen(const char *pFilename) {
 
 // ok!
 static uint32_t _midiReadVarLen(_MIDI_FILE* pMFembedded, uint32_t* ptrNew, uint32_t* numEmbedded) {
-  uint32_t valueEmbedded;
+  uint32_t valueEmbedded; // TODO: uint8_t instead of uint32_t ???
   uint8_t c;
 
   // Variable-length values use the lower 7 bits of a byte for data and the top bit to signal a following data byte. 
@@ -452,7 +450,7 @@ BOOL midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_
             break;
         case	metaSetTempo: { // looks ok!
               uint8_t mpqn[3];
-              readChunkFromFile(pMFembedded->pFile, &mpqn, pTrackNew->ptrNew, 3);
+              readChunkFromFile(pMFembedded->pFile, mpqn, pTrackNew->ptrNew, 3);
               int32_t iMPQN = (mpqn[0] << 16) | (mpqn[1] << 8) | mpqn[2];
               pMsgEmbedded->MsgData.MetaEvent.Data.Tempo.iBPM = MICROSECONDS_PER_MINUTE / iMPQN;
             }
