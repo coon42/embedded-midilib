@@ -315,7 +315,7 @@ BOOL midiPlayerOpenFile(MIDI_PLAYER* pMidiPlayer, const char* pFileName) {
   return TRUE;
 }
 
-BOOL midiPlayerTick(MIDI_PLAYER* pMidiPlayer) {
+bool midiPlayerTick(MIDI_PLAYER* pMidiPlayer) {
   MIDI_PLAYER* pMp = pMidiPlayer;
 
   if (pMp->pMidiFile == NULL)
@@ -379,7 +379,7 @@ BOOL midiPlayerTick(MIDI_PLAYER* pMidiPlayer) {
   return !pMp->allTracksAreFinished; // TODO: close file
 }
 
-BOOL playMidiFile(MIDI_PLAYER* pMidiPlayer, const char *pFilename) {
+bool playMidiFile(MIDI_PLAYER* pMidiPlayer, const char *pFilename) {
   if (!midiPlayerOpenFile(pMidiPlayer, pFilename))
     return FALSE;
   

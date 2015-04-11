@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include "midifile.h"
 #include "hal_midiplayer_win32.h"
 
@@ -135,7 +136,7 @@ void setPlaybackTempo(_MIDI_FILE* midiFile, int32_t bpm) {
 
 
 // looks ok!
-static BOOL _midiValidateTrack(const _MIDI_FILE *pMFembedded, int32_t iTrack) {
+static bool _midiValidateTrack(const _MIDI_FILE *pMFembedded, int32_t iTrack) {
   // normal version
   if (!IsFilePtrValid(pMFembedded))	return FALSE;
 
@@ -254,7 +255,7 @@ static uint32_t _midiReadVarLen(_MIDI_FILE* pMFembedded, uint32_t* ptrNew, uint3
 }
 
 // ok!
-static BOOL _midiReadTrackCopyData(_MIDI_FILE* pMFembedded, MIDI_MSG* pMsgEmbedded, uint32_t ptrEmbedded, size_t* szEmbedded, BOOL bCopyPtrData) {
+static bool _midiReadTrackCopyData(_MIDI_FILE* pMFembedded, MIDI_MSG* pMsgEmbedded, uint32_t ptrEmbedded, size_t* szEmbedded, bool bCopyPtrData) {
   if (*szEmbedded > META_EVENT_MAX_DATA_SIZE) {
     printf("\r\n_midiReadTrackCopyData; Warning: Meta data is greater than maximum size! (%d of %d)\r\n", szEmbedded, META_EVENT_MAX_DATA_SIZE);
     *szEmbedded = META_EVENT_MAX_DATA_SIZE; // truncate meta data, since we don't have enough space
@@ -275,7 +276,7 @@ int32_t midiReadGetNumTracks(const MIDI_FILE *_pMFembedded) {
 }
 
 // looks ok! (TODO: running status interruption by realtime messages?)
-BOOL midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_MSG* pMsgEmbedded) {
+bool midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_MSG* pMsgEmbedded) {
   MIDI_FILE_TRACK *pTrackNew;
   uint32_t bptrEmbedded, pMsgDataPtrEmbedded;
   size_t szEmbedded;
@@ -555,7 +556,7 @@ void midiReadInitMessage(MIDI_MSG *pMsg) {
 }
 
 // TODO: 'open for write' implementation!
-BOOL	midiFileClose(MIDI_FILE* _pMFembedded) {
+bool	midiFileClose(MIDI_FILE* _pMFembedded) {
   _VAR_CAST;
   if (!IsFilePtrValid(pMFembedded))			return FALSE;
 

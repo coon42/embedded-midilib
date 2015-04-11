@@ -412,20 +412,20 @@ static float fFreqlist[] = {
 /*
 ** Name resolving functions
 */
-BOOL muGetInstrumentName(char *pName, int32_t iInstr)
+bool muGetInstrumentName(char *pName, int32_t iInstr)
 {
 	if (iInstr < 0 || iInstr > 127)
-		return FALSE;
+		return false;
   strcpy_s(pName, 32, szPatchList[iInstr]);
-	return TRUE;
+	return true;
 }
 
-BOOL muGetDrumName(char *pName, int32_t iInstr)
+bool muGetDrumName(char *pName, int32_t iInstr)
 {
 	if (iInstr < 0 || iInstr > 127)
-		return FALSE;
+		return false;
 	strcpy_s(pName, 32, szGMDrums[iInstr]);
-	return TRUE;
+	return true;
 }
 
 void muGetMIDIMsgName(char *pName, tMIDI_MSG iMsg) {
@@ -444,15 +444,15 @@ void muGetMIDIMsgName(char *pName, tMIDI_MSG iMsg) {
 		}
 }
 
-BOOL muGetControlName(char *pName, tMIDI_CC iCC)
+bool muGetControlName(char *pName, tMIDI_CC iCC)
 {
 	if (iCC < 0 || iCC > 127)
-		return FALSE;
+		return false;
 	strcpy_s(pName, 32, szCCList[iCC]);
-	return TRUE;
+	return true;
 }
 
-BOOL muGetKeySigName(char *pName, tMIDI_KEYSIG iKey)
+bool muGetKeySigName(char *pName, tMIDI_KEYSIG iKey)
 {
 static char *iKeysList[2][8] = {
 /*#*/{"C ", "G ", "D ", "A ", "E ", "B ", "F#", "C#", },
@@ -465,16 +465,16 @@ int32_t iMin = (iKey&keyMaskMin);
 
 	strcpy_s(pName, 8, iKeysList[iFlats?1:0][iRootNum]);
 	strcat_s(pName, 8, iMin ? " Min" : " Maj");
-	return TRUE;
+	return true;
 }
 
-BOOL muGetTextName(char *pName, tMIDI_TEXT iEvent)
+bool muGetTextName(char *pName, tMIDI_TEXT iEvent)
 {
-	if (iEvent<1 || iEvent>7)	return FALSE;
+	if (iEvent<1 || iEvent>7)	return false;
 	return muGetMetaName(pName, (tMIDI_META)iEvent);
 }
 
-BOOL muGetMetaName(char *pName, tMIDI_META iEvent)
+bool muGetMetaName(char *pName, tMIDI_META iEvent)
 {
 	switch(iEvent)
 		{
@@ -493,9 +493,9 @@ BOOL muGetMetaName(char *pName, tMIDI_META iEvent)
 		case	metaTimeSig:		        strcpy_s(pName, 32, "Time Sig");			      break;
 		case	metaKeySig:			        strcpy_s(pName, 32, "Key Sig");			        break;
 		case	metaSequencerSpecific:	strcpy_s(pName, 32, "Sequencer Specific");	break;
-		default:	return FALSE;
+		default:	return false;
 		}
-	return TRUE;
+	return true;
 
 }
 

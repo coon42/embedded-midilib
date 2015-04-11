@@ -1,6 +1,7 @@
 #ifndef __MIDIFILE_H
 #define __MIDIFILE_H
 
+#include <stdbool.h>
 #include "midifile.h"
 
 typedef struct {
@@ -10,14 +11,14 @@ typedef struct {
   int32_t currentTick;
   int32_t lastTick;
   int32_t deltaTick; // Must NEVER be negative!!!
-  BOOL eventsNeedToBeFetched;
-  BOOL trackIsFinished;
-  BOOL allTracksAreFinished;
+  bool eventsNeedToBeFetched;
+  bool trackIsFinished;
+  bool allTracksAreFinished;
   float lastMsPerTick;
   float timeScaleFactor;
 } MIDI_PLAYER;
 
-BOOL midiPlayerTick(MIDI_PLAYER* pMidiPlayer);
-BOOL playMidiFile(MIDI_PLAYER* pMidiPlayer, const char *pFilename);
+bool midiPlayerTick(MIDI_PLAYER* pMidiPlayer);
+bool playMidiFile(MIDI_PLAYER* pMidiPlayer, const char *pFilename);
 
 #endif // __MIDIFILE_H

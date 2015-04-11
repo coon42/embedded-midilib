@@ -45,13 +45,13 @@
 /*
 ** Name resolving prototypes
 */
-BOOL	muGetInstrumentName(char *pName, int32_t iInstr);
-BOOL	muGetDrumName(char *pName, int32_t iInstr);
+bool	muGetInstrumentName(char *pName, int32_t iInstr);
+bool	muGetDrumName(char *pName, int32_t iInstr);
 void	muGetMIDIMsgName(char *pName, tMIDI_MSG iMsg);
-BOOL	muGetControlName(char *pName, tMIDI_CC iCC);
-BOOL	muGetKeySigName(char *pName, tMIDI_KEYSIG iKey);
-BOOL	muGetTextName(char *pName, tMIDI_TEXT iEvent);
-BOOL	muGetMetaName(char *pName, tMIDI_META iEvent);
+bool	muGetControlName(char *pName, tMIDI_CC iCC);
+bool	muGetKeySigName(char *pName, tMIDI_KEYSIG iKey);
+bool	muGetTextName(char *pName, tMIDI_TEXT iEvent);
+bool	muGetMetaName(char *pName, tMIDI_META iEvent);
 
 /*
 ** Conversion prototypes
