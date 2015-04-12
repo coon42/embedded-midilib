@@ -25,6 +25,7 @@
  *       - abstract FILE type / FILE type needs an instance on microcontroller
  *       - change size_t to int?
  *       - change iBPM to imBPM to increase accuracy of tempo?
+ *       - disable cache on non MIDI0 files?
  */
 
 #include <stdio.h>
@@ -32,8 +33,9 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include "hal/hal_filesystem.h"
+#include "hal/hal_misc.h"
 #include "midifile.h"
-#include "hal_midiplayer_win32.h"
 
 // -----------------------------------
 // Global variables and new functions
@@ -44,22 +46,23 @@ _MIDI_FILE _midiFile; // TODO: let the user define and pass the instance, so it 
 static uint8_t g_cache[PLAYBACK_CACHE_SIZE];
 static int32_t g_cacheStartPos = 0;
 static int32_t g_cacheEndPos = 0;
-static BOOL cacheInitialized = FALSE;
+static bool cacheInitialized = false;
 
+// TODO: lay out to external callback handler
 void onCacheMiss(uint32_t reqStartPos, uint32_t reqNumBytes, uint32_t cachePosOnReq, uint32_t cacheSize) {
-  // hal_printfWarning("Cache Miss: requested: %d bytes from %d, cache was at %d with a size of %d!\r\n",
-  //  reqNumBytes, reqStartPos, cachePosOnReq, cacheSize);
+  hal_printfWarning("Cache Miss: requested: %d bytes from %d, cache was at %d with a size of %d!\r\n",
+    reqNumBytes, reqStartPos, cachePosOnReq, cacheSize);
 }
 
-BOOL requestedChunkStartIsInCache(int32_t startPos, int32_t reqSize, int32_t cacheStartPos, int32_t cacheSize) {
+bool requestedChunkStartIsInCache(int32_t startPos, int32_t reqSize, int32_t cacheStartPos, int32_t cacheSize) {
   return startPos >= cacheStartPos && startPos < cacheStartPos + cacheSize;
 }
 
 uint32_t readDataToCache(FILE* pFile, uint8_t* cache, int32_t startPos, int32_t num) {
   g_cacheStartPos = startPos;
-  cacheInitialized = TRUE;
+  cacheInitialized = true;
   hal_fseek(pFile, startPos); 
-  return hal_fread(cache, num, pFile);
+  return hal_fread(pFile, cache, num);
 }
 
 uint32_t readChunkFromCache(void* dst, uint8_t* cache, uint32_t cacheStartPos, int32_t startPos, int32_t num) {
@@ -78,17 +81,18 @@ uint32_t readChunkFromCache(void* dst, uint8_t* cache, uint32_t cacheStartPos, i
 int32_t readChunkFromFile(FILE* pFile, void* dst, int32_t startPos, size_t num) {
   uint32_t bytesReadTotal = 0;
   uint32_t bytesRead = 0;
+  uint8_t* dstBytePtr = dst;
 
   while (num) {
-    bytesRead = readChunkFromCache(dst, g_cache, g_cacheStartPos, startPos, num); 
+    bytesRead = readChunkFromCache(dstBytePtr, g_cache, g_cacheStartPos, startPos, num);
     bytesReadTotal += bytesRead;
     startPos += bytesRead;
-    (uint8_t*)dst += bytesRead;
+    dstBytePtr += bytesRead;
     num -= bytesRead;
 
     if (num) {
       // For an unknown reason, sometimes after caching, a few bytes earlier are requested, which will result
-      // into another cache miss. To prevent this unnecessary cache miss, a few bytes earlicher, from the 
+      // into another cache miss. To prevent this unnecessary cache miss, a few bytes earlier, from the 
       // requested starting position will be cached.
       // TODO: Find out, which access causes this!
       onCacheMiss(startPos, num, g_cacheStartPos, PLAYBACK_CACHE_SIZE);
@@ -138,29 +142,29 @@ void setPlaybackTempo(_MIDI_FILE* midiFile, int32_t bpm) {
 // looks ok!
 static bool _midiValidateTrack(const _MIDI_FILE *pMFembedded, int32_t iTrack) {
   // normal version
-  if (!IsFilePtrValid(pMFembedded))	return FALSE;
+  if (!IsFilePtrValid(pMFembedded))	return false;
 
   // embedded version
-  if (!IsFilePtrValid(pMFembedded))	return FALSE;
+  if (!IsFilePtrValid(pMFembedded))	return false;
 
   if (pMFembedded->bOpenForWriting) {
     if (iTrack < 0 || iTrack >= MAX_MIDI_TRACKS)
-      return FALSE;
+      return false;
   }
   else {	// open for reading
     if (iTrack < 0 || iTrack >= pMFembedded->Header.iNumTracks)
-      return FALSE;
+      return false;
   }
 
-  return TRUE;
+  return true;
 }
 
 // looks ok!
 MIDI_FILE  *midiFileOpen(const char *pFilename) {
   FILE *pFileNew = NULL;
   uint32_t ptrNew;
-  BOOL bValidFile = FALSE;
-  cacheInitialized = FALSE; // invalidate cache
+  bool bValidFile = false;
+  cacheInitialized = false; // invalidate cache
 
   hal_fopen(&pFileNew, pFilename);
   if (pFileNew) {
@@ -207,8 +211,8 @@ MIDI_FILE  *midiFileOpen(const char *pFilename) {
         ptrNew += _midiFile.Track[iTrack].sz + 8;
       }
 
-      _midiFile.bOpenForWriting = FALSE;
-      bValidFile = TRUE;
+      _midiFile.bOpenForWriting = false;
+      bValidFile = true;
     }
   }
   
@@ -217,7 +221,7 @@ MIDI_FILE  *midiFileOpen(const char *pFilename) {
  
   _midiFile.pFile = pFileNew;
    
-  //cacheInitialized = FALSE; // invalidate cache (somethings screws up timing, when invalidating cache here!)
+  //cacheInitialized = false; // invalidate cache (somethings screws up timing, when invalidating cache here!)
 
   setPlaybackTempo(&_midiFile, MIDI_BPM_DEFAULT);
   setPlaybackTempo(&_midiFile, MIDI_BPM_DEFAULT);
@@ -266,7 +270,7 @@ static bool _midiReadTrackCopyData(_MIDI_FILE* pMFembedded, MIDI_MSG* pMsgEmbedd
     pMsgEmbedded->data_sz_embedded = *szEmbedded;
   }
 
-  return TRUE;
+  return true;
 }
 
 // ok!
@@ -282,19 +286,19 @@ bool midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_
   size_t szEmbedded;
 
   _VAR_CAST;
-  if (!IsTrackValid(iTrack))			return FALSE;
+  if (!IsTrackValid(iTrack))			return false;
   
   pTrackNew = &pMFembedded->Track[iTrack];
   /* FIXME: Check if there is data on this track first!!!	*/
   if(pTrackNew->ptrNew >= pTrackNew->pEndNew)
-    return FALSE;
+    return false;
       
   // Read Delta Time
   _midiReadVarLen(pMFembedded, &pTrackNew->ptrNew, &pMsgEmbedded->dt);
   pTrackNew->pos += pMsgEmbedded->dt;
   pMsgEmbedded->dwAbsPos = pTrackNew->pos;
 
-  BOOL bRunningStatus = FALSE;
+  bool bRunningStatus = false;
   uint8_t eventType;
   readByteFromFile(pMFembedded->pFile, &eventType, pTrackNew->ptrNew);
 
@@ -310,7 +314,7 @@ bool midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_
   else {  /* just data - so use the last msg type */
     pMsgEmbedded->iType = pMsgEmbedded->iLastMsgType;
     pMsgDataPtrEmbedded = pTrackNew->ptrNew;
-    bRunningStatus = TRUE;
+    bRunningStatus = true;
   }
   pMsgEmbedded->iLastMsgType = (tMIDI_MSG)pMsgEmbedded->iType;
 
@@ -413,8 +417,8 @@ bool midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_
       _midiReadVarLen(pMFembedded, &pTrackNew->ptrNew, &pMsgEmbedded->iMsgSize);
       szEmbedded = pTrackNew->ptrNew - bptrEmbedded + pMsgEmbedded->iMsgSize;
 
-      if (_midiReadTrackCopyData(pMFembedded, pMsgEmbedded, pTrackNew->ptrNew, &szEmbedded, FALSE) == FALSE)
-        return FALSE;
+      if (_midiReadTrackCopyData(pMFembedded, pMsgEmbedded, pTrackNew->ptrNew, &szEmbedded, false) == false)
+        return false;
 
       /* Now copy the data...*/
       readChunkFromFile(pMFembedded->pFile, pMsgEmbedded->dataEmbedded, bptrEmbedded, szEmbedded);
@@ -515,8 +519,8 @@ bool midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_
       _midiReadVarLen(pMFembedded, &pTrackNew->ptrNew, &pMsgEmbedded->iMsgSize);
       szEmbedded = (pTrackNew->ptrNew - bptrEmbedded) + pMsgEmbedded->iMsgSize;
 
-      if (_midiReadTrackCopyData(pMFembedded, pMsgEmbedded, pTrackNew->ptrNew, &szEmbedded, FALSE) == FALSE)
-        return FALSE;
+      if (_midiReadTrackCopyData(pMFembedded, pMsgEmbedded, pTrackNew->ptrNew, &szEmbedded, false) == false)
+        return false;
           
       /* Embedded: Now copy the data */
       readChunkFromFile(pMFembedded->pFile, pMsgEmbedded->dataEmbedded, bptrEmbedded, szEmbedded);
@@ -531,38 +535,38 @@ bool midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_
   */
 
   // embedded (needs to be checked!)
-  pMsgEmbedded->bImpliedMsg = FALSE;
+  pMsgEmbedded->bImpliedMsg = false;
   if ((pMsgEmbedded->iType & 0xf0) != 0xf0) {
     uint8_t tmpVal = 0;
     readByteFromFile(pMFembedded->pFile, &tmpVal, pTrackNew->ptrNew);
     if (tmpVal & 0x80) {
     }
     else {
-      pMsgEmbedded->bImpliedMsg = TRUE;
+      pMsgEmbedded->bImpliedMsg = true;
       pMsgEmbedded->iImpliedMsg = pMsgEmbedded->iLastMsgType;
       pMsgEmbedded->iMsgSize--;
     }
 
-    _midiReadTrackCopyData(pMFembedded, pMsgEmbedded, pTrackNew->ptrNew, &pMsgEmbedded->iMsgSize, TRUE);
+    _midiReadTrackCopyData(pMFembedded, pMsgEmbedded, pTrackNew->ptrNew, &pMsgEmbedded->iMsgSize, true);
     pTrackNew->ptrNew += pMsgEmbedded->iMsgSize;
   }
 
-  return TRUE;
+  return true;
 }
  // ok!
 void midiReadInitMessage(MIDI_MSG *pMsg) {
   pMsg->data_sz_embedded = 0;
-  pMsg->bImpliedMsg = FALSE;
+  pMsg->bImpliedMsg = false;
 }
 
 // TODO: 'open for write' implementation!
 bool	midiFileClose(MIDI_FILE* _pMFembedded) {
   _VAR_CAST;
-  if (!IsFilePtrValid(pMFembedded))			return FALSE;
+  if (!IsFilePtrValid(pMFembedded))			return false;
 
   // TODO: open for writing implementation here!
   if (pMFembedded->pFile)
     return hal_fclose(pMFembedded->pFile);
   
-  return TRUE;
+  return true;
 }

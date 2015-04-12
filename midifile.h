@@ -265,11 +265,6 @@ int32_t midiReadGetNumTracks(const MIDI_FILE* _pMFembedded);
 bool		midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_MSG* pMsgEmbedded);
 void midiReadInitMessage(MIDI_MSG *pMsg);
 
-// Internal helper functions
-static bool _midiValidateTrack(const _MIDI_FILE *pMFembedded, int32_t iTrack);
-static uint32_t _midiReadVarLen(_MIDI_FILE* pMFembedded, uint32_t* ptrNew, uint32_t* numEmbedded);
-static bool _midiReadTrackCopyData(_MIDI_FILE* pMFembedded, MIDI_MSG* pMsgEmbedded, uint32_t ptrEmbedded, size_t* szEmbedded, bool bCopyPtrData);
-
 
 #endif /* _MIDIFILE_H */
 
