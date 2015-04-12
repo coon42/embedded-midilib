@@ -50,7 +50,7 @@ static bool cacheInitialized = false;
 
 // TODO: lay out to external callback handler
 void onCacheMiss(uint32_t reqStartPos, uint32_t reqNumBytes, uint32_t cachePosOnReq, uint32_t cacheSize) {
-  hal_printfWarning("Cache Miss: requested: %d bytes from %d, cache was at %d with a size of %d!\r\n",
+  hal_printfWarning("Cache Miss: requested: %d bytes from %d, cache was at %d with a size of %d!",
     reqNumBytes, reqStartPos, cachePosOnReq, cacheSize);
 }
 
