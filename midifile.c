@@ -161,12 +161,14 @@ static bool _midiValidateTrack(const _MIDI_FILE *pMFembedded, int32_t iTrack) {
 
 // looks ok!
 MIDI_FILE  *midiFileOpen(const char *pFilename) {
-  FILE *pFileNew = NULL;
+  FILE* pFileNew = NULL;
   uint32_t ptrNew;
   bool bValidFile = false;
   cacheInitialized = false; // invalidate cache
 
-  hal_fopen(&pFileNew, pFilename);
+  if(!hal_fopen(&pFileNew, pFilename))
+    return NULL;
+
   if (pFileNew) {
     /* Is this a valid MIDI file ? */
     ptrNew = 0;
