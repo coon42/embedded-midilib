@@ -32,7 +32,7 @@
 /*
 ** Data Tables
 */
-static char *szPatchList[128] = {
+static const char* szPatchList[128] = {
 	/*Pianos*/
 	"Acoustic Grand Piano",
 	"Bright Acoustic Piano",
@@ -179,7 +179,7 @@ static char *szPatchList[128] = {
 	"Gunshot",
 };
 
-static char *szGMDrums[128]={
+static const char* szGMDrums[128] = {
 	"???",	/* C0 */
 	"???",	
 	"???",	
@@ -270,7 +270,7 @@ static char *szGMDrums[128]={
 	"Open Sudro",	
 };
 
-static char *szCCList[] = {
+static const char* szCCList[] = {
 	"Bank Select",
 	"Modulation",
 	"Breath Control",
@@ -379,7 +379,7 @@ static char *szCCList[] = {
 	"Poly Mode On",
 };
 
-static char *szNoteName[] = {
+static const char* szNoteName[] = {
 	"C ",
 	"Db",
 	"D ",
@@ -394,7 +394,175 @@ static char *szNoteName[] = {
 	"B ",
 };
 
-static float fFreqlist[] = {
+static const char* szMidiNoteName[] = {
+  "C -2",
+  "Db-2",
+  "D -2",
+  "Eb-2",
+  "E -2",
+  "F -2",
+  "Gb-2",
+  "G -2",
+  "Ab-2",
+  "A -2",
+  "Bb-2",
+  "B -2",
+
+  "C -1",
+  "Db-1",
+  "D -1",
+  "Eb-1",
+  "E -1",
+  "F -1",
+  "Gb-1",
+  "G -1",
+  "Ab-1",
+  "A -1",
+  "Bb-1",
+  "B -1",
+
+  "C 0",
+  "Db0",
+  "D 0",
+  "Eb0",
+  "E 0",
+  "F 0",
+  "Gb0",
+  "G 0",
+  "Ab0",
+  "A 0",
+  "Bb0",
+  "B 0",
+
+  "C 1",
+  "Db1",
+  "D 1",
+  "Eb1",
+  "E 1",
+  "F 1",
+  "Gb1",
+  "G 1",
+  "Ab1",
+  "A 1",
+  "Bb1",
+  "B 1",
+
+  "C 2",
+  "Db2",
+  "D 2",
+  "Eb2",
+  "E 2",
+  "F 2",
+  "Gb2",
+  "G 2",
+  "Ab2",
+  "A 2",
+  "Bb2",
+  "B 2",
+
+  "C 3",
+  "Db3",
+  "D 3",
+  "Eb3",
+  "E 3",
+  "F 3",
+  "Gb3",
+  "G 3",
+  "Ab3",
+  "A 3",
+  "Bb3",
+  "B 3",
+
+  "C 4",
+  "Db4",
+  "D 4",
+  "Eb4",
+  "E 4",
+  "F 4",
+  "Gb4",
+  "G 4",
+  "Ab4",
+  "A 4",
+  "Bb4",
+  "B 4",
+
+  "C 5",
+  "Db5",
+  "D 5",
+  "Eb5",
+  "E 5",
+  "F 5",
+  "Gb5",
+  "G 5",
+  "Ab5",
+  "A 5",
+  "Bb5",
+  "B 5",
+
+  "C 6",
+  "Db6",
+  "D 6",
+  "Eb6",
+  "E 6",
+  "F 6",
+  "Gb6",
+  "G 6",
+  "Ab6",
+  "A 6",
+  "Bb6",
+  "B 6",
+
+  "C 7",
+  "Db7",
+  "D 7",
+  "Eb7",
+  "E 7",
+  "F 7",
+  "Gb7",
+  "G 7",
+  "Ab7",
+  "A 7",
+  "Bb7",
+  "B 7",
+
+  "C 8",
+  "Db8",
+  "D 8",
+  "Eb8",
+  "E 8",
+  "F 8",
+  "Gb8",
+  "G 8",
+  "Ab8",
+  "A 8",
+  "Bb8",
+  "B 8",
+
+  "C 9",
+  "Db9",
+  "D 9",
+  "Eb9",
+  "E 9",
+  "F 9",
+  "Gb9",
+  "G 9",
+  "Ab9",
+  "A 9",
+  "Bb9",
+  "B 9",
+
+  "C 10",
+  "Db10",
+  "D 10",
+  "Eb10",
+  "E 10",
+  "F 10",
+  "Gb10",
+  "G 10",
+};
+
+// TODO: add frequencies of all 127 midi notes here!
+static const float fFreqlist[] = {
 	261.63f,
 	277.18f,
 	293.66f,
@@ -412,8 +580,7 @@ static float fFreqlist[] = {
 /*
 ** Name resolving functions
 */
-bool muGetInstrumentName(char *pName, int32_t iInstr)
-{
+bool muGetInstrumentName(char *pName, int32_t iInstr) {
 	if (iInstr < 0 || iInstr > 127)
 		return false;
 
@@ -421,8 +588,7 @@ bool muGetInstrumentName(char *pName, int32_t iInstr)
 	return true;
 }
 
-bool muGetDrumName(char *pName, int32_t iInstr)
-{
+bool muGetDrumName(char *pName, int32_t iInstr) {
 	if (iInstr < 0 || iInstr > 127)
 		return false;
 	strcpy(pName, szGMDrums[iInstr]);
@@ -445,16 +611,14 @@ void muGetMIDIMsgName(char *pName, tMIDI_MSG iMsg) {
 		}
 }
 
-bool muGetControlName(char *pName, tMIDI_CC iCC)
-{
+bool muGetControlName(char *pName, tMIDI_CC iCC) {
 	if (iCC < 0 || iCC > 127)
 		return false;
 	strcpy(pName, szCCList[iCC]);
 	return true;
 }
 
-bool muGetKeySigName(char *pName, tMIDI_KEYSIG iKey)
-{
+bool muGetKeySigName(char *pName, tMIDI_KEYSIG iKey) {
 static char *iKeysList[2][8] = {
 /*#*/{"C ", "G ", "D ", "A ", "E ", "B ", "F#", "C#", },
 /*b*/{"C ", "F ", "Bb", "Eb", "Ab", "Db", "Gb", "Cb", },
@@ -532,19 +696,14 @@ int32_t muGetNoteFromName(const char *pName) {
 	return note;
 }
 
-char *muGetNameFromNote(char *pStr, int32_t iNote) {
-	if (!pStr)		return NULL;
-
-	if (iNote<0 || iNote>127)
-		strcpy(pStr, "ERR");
-	else
-		sprintf(pStr, "%s%d", szNoteName[iNote%12], ((iNote-MIDI_NOTE_C0) / 12));
-	
-	return pStr;
+const char* muGetNameFromNote(int32_t iNote) {
+  if (iNote < 0 || iNote > 127)
+    return "ERR";
+  else
+    return szMidiNoteName[iNote + 24 + C0_BASE * 12];
 }
 
-float muGetFreqFromNote(int32_t iNote)
-{
+float muGetFreqFromNote(int32_t iNote) {
 int32_t oct = iNote/12-5;
 float freq;
 
@@ -561,8 +720,7 @@ float freq;
 	return freq;
 }
 
-int32_t muGetNoteFromFreq(float fFreq)
-{
+int32_t muGetNoteFromFreq(float fFreq) {
 /* This is for completeness, I'm not sure of how often it
 ** will get used. Therefore, the code is un-optimised :)
 */
