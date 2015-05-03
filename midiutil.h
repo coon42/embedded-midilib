@@ -71,7 +71,7 @@ bool	muGetMetaName(char *pName, tMIDI_META iEvent);
 ** Conversion prototypes
 */
 int32_t		muGetNoteFromName(const char *pName);
-const char* muGetNameFromNoteNew(int32_t iNote);
+const char* muGetNameFromNote(int32_t iNote);
 float	muGetFreqFromNote(int32_t iNote);
 int32_t		muGetNoteFromFreq(float fFreq);
 

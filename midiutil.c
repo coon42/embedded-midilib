@@ -692,22 +692,6 @@ static const float fMidiNoteFreqList[128] = {
   12543.85f
 };
 
-// TODO: add frequencies of all 127 midi notes here!
-static const float fFreqlist[] = {
-	261.63f,
-	277.18f,
-	293.66f,
-	311.13f,
-	329.63f,
-	349.23f,
-	369.99f,
-	392.00f,
-	415.30f,
-	440.00f,
-	466.16f,
-	493.88f,
-};
-
 /*
 ** Name resolving functions
 */
@@ -835,12 +819,12 @@ const char* muGetNameFromNote(int32_t iNote) {
 }
 
 float muGetFreqFromNote(int32_t iNote) {
-int32_t oct = iNote/12-5;
-float freq;
+  int32_t oct = iNote/12-5;
+  float freq;
 
-	if (iNote<0 || iNote>127)	return 0;
+	if (iNote < 0 || iNote > 127)	return 0;
 
-	freq = fFreqlist[iNote%12];
+  freq = fMidiNoteFreqList[iNote];
 	
 	while(oct > 0)
 		freq *= 2.0f, oct--;
