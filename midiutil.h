@@ -59,10 +59,10 @@
 /*
 ** Name resolving prototypes
 */
-bool	muGetInstrumentName(char *pName, int32_t iInstr);
+const char* muGetInstrumentName(int32_t iInstr);
 bool	muGetDrumName(char *pName, int32_t iInstr);
 void	muGetMIDIMsgName(char *pName, tMIDI_MSG iMsg);
-bool	muGetControlName(char *pName, tMIDI_CC iCC);
+const char*	muGetControlName(tMIDI_CC iCC);
 bool	muGetKeySigName(char *pName, tMIDI_KEYSIG iKey);
 bool	muGetTextName(char *pName, tMIDI_TEXT iEvent);
 bool	muGetMetaName(char *pName, tMIDI_META iEvent);

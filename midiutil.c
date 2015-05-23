@@ -695,12 +695,11 @@ static const float fMidiNoteFreqList[128] = {
 /*
 ** Name resolving functions
 */
-bool muGetInstrumentName(char *pName, int32_t iInstr) {
+const char* muGetInstrumentName(int32_t iInstr) {
 	if (iInstr < 0 || iInstr > 127)
 		return false;
 
-  strcpy(pName, szPatchList[iInstr]);
-	return true;
+  return szPatchList[iInstr];
 }
 
 bool muGetDrumName(char *pName, int32_t iInstr) {
@@ -726,11 +725,11 @@ void muGetMIDIMsgName(char *pName, tMIDI_MSG iMsg) {
 		}
 }
 
-bool muGetControlName(char *pName, tMIDI_CC iCC) {
+const char* muGetControlName(tMIDI_CC iCC) {
 	if (iCC < 0 || iCC > 127)
 		return false;
-	strcpy(pName, szCCList[iCC]);
-	return true;
+
+	return szCCList[iCC];	
 }
 
 bool muGetKeySigName(char *pName, tMIDI_KEYSIG iKey) {
