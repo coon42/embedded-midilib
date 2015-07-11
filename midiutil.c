@@ -278,7 +278,7 @@ static const char* szCCList[] = {
 	"Foot",
 	"Portamento Time",
 	"Date Entry",
-	"Volume	",
+	"Volume",
 	"Balance",
 	"Undefined 9",
 	"Pan",
@@ -729,7 +729,7 @@ const char* muGetControlName(tMIDI_CC iCC) {
 	if (iCC < 0 || iCC > 127)
 		return false;
 
-	return szCCList[iCC];	
+	return szCCList[iCC];
 }
 
 bool muGetKeySigName(char *pName, tMIDI_KEYSIG iKey) {
