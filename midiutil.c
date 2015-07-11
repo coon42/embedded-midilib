@@ -286,7 +286,7 @@ static const char* szGMDrums[128] = {
   "Open Sudro",	
 };
 
-static const char* szCCList[] = {
+static const char* szCCList[128] = {
   "Bank Select",
   "Modulation",
   "Breath Control",
@@ -399,7 +399,7 @@ static const char* szCCList[] = {
   "Poly Mode On",
 };
 
-static const char* szNoteName[] = {
+static const char* szNoteName[12] = {
   "C ",
   "Db",
   "D ",
@@ -715,44 +715,44 @@ static const float fMidiNoteFreqList[128] = {
 /*
 ** Name resolving functions
 */
-const char* muGetInstrumentName(int32_t iInstr) {
+const char* muGetInstrumentName(int8_t iInstr) {
   if (iInstr < 0 || iInstr > 127)
-    return false;
+    return NULL;
 
   return szPatchList[iInstr];
 }
 
-bool muGetDrumName(char *pName, int32_t iInstr) {
+const char* muGetDrumName(int8_t iInstr) {
   if (iInstr < 0 || iInstr > 127)
-    return false;
+    return NULL;
 
-  strcpy(pName, szGMDrums[iInstr]);
-  return true;
+  return szGMDrums[iInstr];
 }
 
-void muGetMIDIMsgName(char *pName, tMIDI_MSG iMsg) {
-  switch(iMsg){
-    case	msgNoteOff:         strcpy(pName, "Note off");          break;
-    case	msgNoteOn:          strcpy(pName, "Note on");           break;
-    case	msgNoteKeyPressure: strcpy(pName, "Note key pressure"); break;
-    case	msgControlChange:   strcpy(pName, "Control Change");    break;
-    case	msgSetProgram:      strcpy(pName, "Set program");       break;
-    case	msgChangePressure:  strcpy(pName, "Change pressure");   break;
-    case	msgSetPitchWheel:   strcpy(pName, "Set pitch wheel");   break;
-    case	msgMetaEvent:       strcpy(pName, "Meta event");        break;
-    case	msgSysEx1:          strcpy(pName, "SysEx1");            break;
-    case	msgSysEx2:          strcpy(pName, "SysEx2");            break;
-    default:                  strcpy(pName, "Unknown");           break;
-    }
+const char* muGetMIDIMsgName(tMIDI_MSG iMsg) {
+  switch(iMsg) {
+    case	msgNoteOff:         return "Note off";          break;
+    case	msgNoteOn:          return "Note on";           break;
+    case	msgNoteKeyPressure: return "Note key pressure"; break;
+    case	msgControlChange:   return "Control Change";    break;
+    case	msgSetProgram:      return "Set program";       break;
+    case	msgChangePressure:  return "Change pressure";   break;
+    case	msgSetPitchWheel:   return "Set pitch wheel";   break;
+    case	msgMetaEvent:       return "Meta event";        break;
+    case	msgSysEx1:          return "SysEx1";            break;
+    case	msgSysEx2:          return "SysEx2";            break;
+    default:                  return "Unknown";           break;
+  }
 }
 
 const char* muGetControlName(tMIDI_CC iCC) {
   if (iCC < 0 || iCC > 127)
-    return false;
+    return NULL;
 
   return szCCList[iCC];
 }
 
+// TODO: is there a way using a const char* array here too?
 bool muGetKeySigName(char *pName, tMIDI_KEYSIG iKey) {
   static char *iKeysList[2][8] = {
     {"C ", "G ", "D ", "A ", "E ", "B ", "F#", "C#", }, /*#*/
@@ -763,48 +763,46 @@ bool muGetKeySigName(char *pName, tMIDI_KEYSIG iKey) {
   int32_t iFlats   = (iKey & keyMaskNeg);
   int32_t iMin     = (iKey & keyMaskMin);
 
-  strcpy(pName, iKeysList[iFlats?1:0][iRootNum]);
+  strcpy(pName, iKeysList[iFlats ? 1 : 0][iRootNum]);
   strcat(pName, iMin ? " Min" : " Maj");
   return true;
 }
 
-bool muGetTextName(char *pName, tMIDI_TEXT iEvent) {
-  if (iEvent<1 || iEvent>7)	
-    return false;
+const char* muGetTextName(tMIDI_TEXT iEvent) {
+  if (iEvent < 1 || iEvent > 7)
+    return NULL;
 
-  return muGetMetaName(pName, (tMIDI_META)iEvent);
+  return muGetMetaName((tMIDI_META)iEvent);
 }
 
-bool muGetMetaName(char *pName, tMIDI_META iEvent) {
+const char* muGetMetaName(tMIDI_META iEvent) {
   switch(iEvent) {
-    case	metaSequenceNumber:	    strcpy(pName, "Sequence Number");	    break;
-    case	metaTextEvent:		      strcpy(pName, "Text Event");		      break;
-    case	metaCopyright:		      strcpy(pName, "Copyright");			      break;
-    case	metaTrackName:		      strcpy(pName, "Track Name");		      break;
-    case	metaInstrument:		      strcpy(pName, "Instrument");		      break;
-    case	metaLyric:			        strcpy(pName, "Lyric");				        break;
-    case	metaMarker:			        strcpy(pName, "Marker");			        break;
-    case	metaCuePoint:		        strcpy(pName, "Cue Point");			      break;
-    case	metaMIDIPort:		        strcpy(pName, "MIDI Port");		        break;
-    case	metaEndSequence:	      strcpy(pName, "End Sequence");		    break;
-    case	metaSetTempo:		        strcpy(pName, "Set Tempo");			      break;
-    case	metaSMPTEOffset:	      strcpy(pName, "SMPTE Offset");		    break;
-    case	metaTimeSig:		        strcpy(pName, "Time Sig");			      break;
-    case	metaKeySig:			        strcpy(pName, "Key Sig");			        break;
-    case	metaSequencerSpecific:	strcpy(pName, "Sequencer Specific");	break;
-    default:	return false;
+    case	metaSequenceNumber:	    return "Sequence Number";	    break;
+    case	metaTextEvent:		      return "Text Event";		      break;
+    case	metaCopyright:		      return "Copyright";			      break;
+    case	metaTrackName:		      return "Track Name";		      break;
+    case	metaInstrument:		      return "Instrument";		      break;
+    case	metaLyric:			        return "Lyric";				        break;
+    case	metaMarker:			        return "Marker";			        break;
+    case	metaCuePoint:		        return "Cue Point";			      break;
+    case	metaMIDIPort:		        return "MIDI Port";		        break;
+    case	metaEndSequence:	      return "End Sequence";		    break;
+    case	metaSetTempo:		        return "Set Tempo";			      break;
+    case	metaSMPTEOffset:	      return "SMPTE Offset";		    break;
+    case	metaTimeSig:		        return "Time Sig";			      break;
+    case	metaKeySig:			        return "Key Sig";			        break;
+    case	metaSequencerSpecific:	return "Sequencer Specific";  break;
+    default:	return NULL;
   }
-  return true;
-
 }
 
 /*
 ** Conversion Functions
 */
-int32_t muGetNoteFromName(const char *pName) {
-  int32_t note_map[] = {9, 11, 0, 2, 4, 5, 7};
-  char *p, cpy[16];
-  int32_t note = 0;
+int8_t muGetNoteFromName(const char *pName) {
+  int8_t note_map[] = {9, 11, 0, 2, 4, 5, 7};
+  int8_t note = 0;
+  char* p, cpy[16];
 
   strncpy(cpy, pName, 15);
   cpy[15] = '\0';
@@ -823,25 +821,26 @@ int32_t muGetNoteFromName(const char *pName) {
       else if (*p == '#')
         note++, p++;
       
-      note += atoi(p)*12+MIDI_NOTE_C0;
+      note += atoi(p) * 12 + MIDI_NOTE_C0;
     }
   }
   
   return note;
 }
 
-const char* muGetNameFromNote(int32_t iNote) {
+const char* muGetNameFromNote(int8_t iNote) {
   if (iNote < 0 || iNote > 127)
-    return "ERR";
-  else
-    return szMidiNoteName[iNote + 24 + C0_BASE * 12];
+    return "ERR: Invalid note";
+  
+  return szMidiNoteName[iNote + 24 + C0_BASE * 12];
 }
 
-float muGetFreqFromNote(int32_t iNote) {
-  int32_t oct = iNote/12-5;
+float muGetFreqFromNote(int8_t iNote) {
+  int8_t oct = iNote / 12 - 5;
   float freq;
 
-  if (iNote < 0 || iNote > 127)	return 0;
+  if (iNote < 0 || iNote > 127)
+    return 0;
 
   freq = fMidiNoteFreqList[iNote];
   
@@ -854,13 +853,13 @@ float muGetFreqFromNote(int32_t iNote) {
   return freq;
 }
 
-int32_t muGetNoteFromFreq(float fFreq) {
+int8_t muGetNoteFromFreq(float fFreq) {
   /* This is for completeness, I'm not sure of how often it
   ** will get used. Therefore, the code is un-optimised :)
   */
-  int32_t iNote, iBestNote=0;
+  int8_t iNote, iBestNote=0;
   float f;
-  float fDiff=20000;
+  float fDiff = 20000;
 
   for(iNote = 0; iNote < 127; ++iNote) {
     f = muGetFreqFromNote(iNote) - fFreq;
@@ -877,7 +876,9 @@ int32_t muGetNoteFromFreq(float fFreq) {
   return iBestNote;
 }
 
-int32_t muGuessChord(const int32_t *pNoteStatus, const int32_t channel, const int32_t lowRange, const int32_t highRange) {
+int32_t muGuessChord(const int32_t *pNoteStatus, const int32_t channel, const int32_t lowRange, 
+    const int32_t highRange) {
+
   int32_t octave[24];
   int32_t i;
   int32_t lowestNote=999;
@@ -965,13 +966,11 @@ char *muGetChordName(char *str, int32_t chord) {
   int32_t root = chord & CHORD_ROOT_MASK;
   int32_t bass = (chord & CHORD_BASS_MASK) >> 16;
 
-  if (root < 0 || root > 11) {
+  if (root < 0 || root > 11)
     root = 0;
-  }
 
-  if (bass < 0 || bass > 11) {
+  if (bass < 0 || bass > 11)
     bass = 0;
-  }
 
   strcpy(str, szNoteName[root]);
 
@@ -989,15 +988,14 @@ char *muGetChordName(char *str, int32_t chord) {
       break;
   }
 
-  if (chord & CHORD_ADD_7TH) {
+  if (chord & CHORD_ADD_7TH)
     strcat(str, "+7");
-  }
-  if (chord & CHORD_ADD_9TH) {
+ 
+  if (chord & CHORD_ADD_9TH)
     strcat(str, "+9");
-  }
-  if (chord & CHORD_ADD_MAJ7TH) {
+  
+  if (chord & CHORD_ADD_MAJ7TH)
     strcat(str, "+7M");
-  }
   
   if (bass != root) {
     strcat(str, "/");
@@ -1006,4 +1004,3 @@ char *muGetChordName(char *str, int32_t chord) {
 
   return str;
 }
-

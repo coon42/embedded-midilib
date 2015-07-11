@@ -331,7 +331,6 @@ typedef enum {
   textCuePoint    = 7,
 } tMIDI_TEXT; 
 
-
 /*
 ** MIDI Constants
 */
