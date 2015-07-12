@@ -222,10 +222,6 @@ MIDI_FILE  *midiFileOpen(const char *pFilename) {
     return NULL;
  
   _midiFile.pFile = pFileNew;
-   
-  //cacheInitialized = false; // invalidate cache (somethings screws up timing, when invalidating cache here!)
-
-  setPlaybackTempo(&_midiFile, MIDI_BPM_DEFAULT);
   setPlaybackTempo(&_midiFile, MIDI_BPM_DEFAULT);
 
   return (MIDI_FILE *)&_midiFile;  
