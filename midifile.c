@@ -360,7 +360,7 @@ bool midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_
       break;
     }
 
-    case	msgSetParameter: { // // 0x0B 'Controller'
+    case	msgControlChange: { // // 0x0B 'Controller'
       uint8_t tmpControl = 0;
       uint8_t tmpParam = 0;
       pMsgEmbedded->MsgData.NoteParameter.iChannel = pMsgEmbedded->iLastMsgChnl;
