@@ -114,7 +114,7 @@ typedef struct {
 
   MIDI_HEADER			Header;
   uint32_t file_sz;
-  float msPerTick; // microseconds per tick
+  int32_t usPerTick; // microseconds per tick
 
   MIDI_FILE_TRACK		Track[MAX_MIDI_TRACKS];
 } _MIDI_FILE;
@@ -217,7 +217,7 @@ int32_t readChunkFromFile(FILE* pFile, void* dst, int32_t startPos, size_t num);
 int32_t readByteFromFile(FILE* pFile, uint8_t* dst, int32_t startPos);
 int32_t readWordFromFile(FILE* pFile, uint16_t* dst, int32_t startPos);
 int32_t readDwordFromFile(FILE* pFile, uint32_t* dst, int32_t startPos);
-void setPlaybackTempo(_MIDI_FILE* midiFile, int32_t bpm);
+void setPlaybackTempo(_MIDI_FILE* pMidiFile, int32_t bpm);
 
 MIDI_FILE  *midiFileCreate(const char *pFilename, bool bOverwriteIfExists);
 int32_t			midiFileSetTracksDefaultChannel(MIDI_FILE* _pMFembedded, int32_t iTrack, int32_t iChannel);

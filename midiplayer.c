@@ -56,7 +56,7 @@ static void dispatchMidiMsg(MIDI_PLAYER* pMidiPlayer, int32_t trackIndex) {
       if (pMidiPlayer->pOnNoteKeyPressureCb)
         pMidiPlayer->pOnNoteKeyPressureCb(trackIndex, msg->dwAbsPos, msg->MsgData.NoteKeyPressure.iChannel, msg->MsgData.NoteKeyPressure.iNote, msg->MsgData.NoteKeyPressure.iPressure);
       break;
-    case	msgSetParameter:
+    case	msgControlChange:
       if (pMidiPlayer->pOnSetParameterCb)
         pMidiPlayer->pOnSetParameterCb(trackIndex, msg->dwAbsPos, msg->MsgData.NoteParameter.iChannel, msg->MsgData.NoteParameter.iControl, msg->MsgData.NoteParameter.iParam);
       break;
@@ -116,6 +116,8 @@ static void dispatchMidiMsg(MIDI_PLAYER* pMidiPlayer, int32_t trackIndex) {
         break;
       case	metaSetTempo:
         setPlaybackTempo(pMidiPlayer->pMidiFile, msg->MsgData.MetaEvent.Data.Tempo.iBPM);
+        adjustTimeFactor(pMidiPlayer);
+
         if (pMidiPlayer->pOnMetaSetTempoCb)
           pMidiPlayer->pOnMetaSetTempoCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Tempo.iBPM);
         break;
@@ -161,18 +163,17 @@ static void dispatchMidiMsg(MIDI_PLAYER* pMidiPlayer, int32_t trackIndex) {
 }
 
 void midiplayer_init(MIDI_PLAYER* mpl, OnNoteOffCallback_t pOnNoteOffCb, OnNoteOnCallback_t pOnNoteOnCb,
-  OnNoteKeyPressureCallback_t pOnNoteKeyPressureCb, OnSetParameterCallback_t pOnSetParameterCb,
-  OnSetProgramCallback_t pOnSetProgramCb, OnChangePressureCallback_t pOnChangePressureCb, 
-  OnSetPitchWheelCallback_t pOnSetPitchWheelCb, OnMetaMIDIPortCallback_t pOnMetaMIDIPortCb,
-  OnMetaSequenceNumberCallback_t pOnMetaSequenceNumberCb, OnMetaTextEventCallback_t pOnMetaTextEventCb,
-  OnMetaCopyrightCallback_t pOnMetaCopyrightCb, OnMetaTrackNameCallback_t pOnMetaTrackNameCb,
-  OnMetaInstrumentCallback_t pOnMetaInstrumentCb, OnMetaLyricCallback_t pOnMetaLyricCb,
-  OnMetaMarkerCallback_t pOnMetaMarkerCb, OnMetaCuePointCallback_t pOnMetaCuePointCb,
-  OnMetaEndSequenceCallback_t pOnMetaEndSequenceCb, OnMetaSetTempoCallback_t pOnMetaSetTempoCb,
-  OnMetaSMPTEOffsetCallback_t pOnMetaSMPTEOffsetCb, OnMetaTimeSigCallback_t pOnMetaTimeSigCb,
-  OnMetaKeySigCallback_t pOnMetaKeySigCb, OnMetaSequencerSpecificCallback_t pOnMetaSequencerSpecificCb,
-  OnMetaSysExCallback_t pOnMetaSysExCb
-) {
+    OnNoteKeyPressureCallback_t pOnNoteKeyPressureCb, OnSetParameterCallback_t pOnSetParameterCb,
+    OnSetProgramCallback_t pOnSetProgramCb, OnChangePressureCallback_t pOnChangePressureCb, 
+    OnSetPitchWheelCallback_t pOnSetPitchWheelCb, OnMetaMIDIPortCallback_t pOnMetaMIDIPortCb,
+    OnMetaSequenceNumberCallback_t pOnMetaSequenceNumberCb, OnMetaTextEventCallback_t pOnMetaTextEventCb,
+    OnMetaCopyrightCallback_t pOnMetaCopyrightCb, OnMetaTrackNameCallback_t pOnMetaTrackNameCb,
+    OnMetaInstrumentCallback_t pOnMetaInstrumentCb, OnMetaLyricCallback_t pOnMetaLyricCb,
+    OnMetaMarkerCallback_t pOnMetaMarkerCb, OnMetaCuePointCallback_t pOnMetaCuePointCb,
+    OnMetaEndSequenceCallback_t pOnMetaEndSequenceCb, OnMetaSetTempoCallback_t pOnMetaSetTempoCb,
+    OnMetaSMPTEOffsetCallback_t pOnMetaSMPTEOffsetCb, OnMetaTimeSigCallback_t pOnMetaTimeSigCb,
+    OnMetaKeySigCallback_t pOnMetaKeySigCb, OnMetaSequencerSpecificCallback_t pOnMetaSequencerSpecificCb,
+    OnMetaSysExCallback_t pOnMetaSysExCb) {
   memset(mpl, 0, sizeof(MIDI_PLAYER));
 
   mpl->pOnNoteOffCb = pOnNoteOffCb;
@@ -211,15 +212,12 @@ bool midiPlayerOpenFile(MIDI_PLAYER* pMidiPlayer, const char* pFileName) {
     pMidiPlayer->pMidiFile->Track[iTrack].deltaTime = pMidiPlayer->msg[iTrack].dt;
   }
 
-  pMidiPlayer->startTime = hal_clock();
+  pMidiPlayer->startTime = hal_clock() * 1000;
   pMidiPlayer->currentTick = 0;
   pMidiPlayer->lastTick = 0;
-  pMidiPlayer->deltaTick = 0; // Must NEVER be negative!!!
-  pMidiPlayer->eventsNeedToBeFetched = false;
   pMidiPlayer->trackIsFinished = true;
   pMidiPlayer->allTracksAreFinished = false;
-  pMidiPlayer->lastMsPerTick = pMidiPlayer->pMidiFile->msPerTick;
-  pMidiPlayer->timeScaleFactor = 1.0f;
+  pMidiPlayer->lastUsPerTick = pMidiPlayer->pMidiFile->usPerTick;
 
   return true;
 }
@@ -234,66 +232,80 @@ bool playMidiFile(MIDI_PLAYER* pMidiPlayer, const char *pFilename) {
   return true;
 }
 
+void adjustTimeFactor(MIDI_PLAYER* pMp) {
+  float timeScaleFactor;
+  // On a tempo change we need to transform the old absolute time scale to the new scale by setting the
+  // current tick to the right position.
+
+  timeScaleFactor = (float)pMp->lastUsPerTick / pMp->pMidiFile->usPerTick;
+  pMp->currentTick = (pMp->currentTick * timeScaleFactor);
+  pMp->lastUsPerTick = pMp->pMidiFile->usPerTick;
+}
+
+bool isItTimeToFireThisEvent(MIDI_PLAYER* pMp, int iTrack) {
+  if (pMp->pMidiFile->Track[iTrack].deltaTime <= 0 && !pMp->trackIsFinished) {
+    dispatchMidiMsg(pMp, iTrack); // shoot
+
+    // Debug 1/2
+    int32_t expectedWaitTime = pMp->pMidiFile->Track[iTrack].debugLastMsgDt * pMp->lastUsPerTick / 1000;
+    int32_t realWaitTime = hal_clock() - pMp->pMidiFile->Track[iTrack].debugLastClock;
+    int32_t diff = realWaitTime - expectedWaitTime;
+
+    if (abs(diff > 10))
+      hal_printfWarning("Expected: %d ms, real: %d ms, diff: %d ms",
+      expectedWaitTime, realWaitTime, diff);
+    // ---
+
+    midiReadGetNextMessage(pMp->pMidiFile, iTrack, &pMp->msg[iTrack]); // reload
+    pMp->pMidiFile->Track[iTrack].deltaTime += pMp->msg[iTrack].dt;
+
+    // Debug 2/2
+    pMp->pMidiFile->Track[iTrack].debugLastClock = hal_clock();
+    pMp->pMidiFile->Track[iTrack].debugLastMsgDt = pMp->msg[iTrack].dt;
+    // ---
+
+    return true;
+  }
+
+  return false;
+}
+
+bool processTracks(MIDI_PLAYER* pMp) {
+  int32_t deltaTick = pMp->currentTick - pMp->lastTick; // Must NEVER be negative!!!
+
+  if (deltaTick < 0) {
+    hal_printfWarning("Warning: deltaTick is negative! Fast forward? deltaTick=%d", deltaTick);
+
+    // TODO: correct time here, to prevent skips on following tempo changes!
+    deltaTick = 0;
+  }
+
+  bool eventsNeedToBeFetched = false;
+  pMp->allTracksAreFinished = true;
+
+  for (int iTrack = 0; iTrack < midiReadGetNumTracks(pMp->pMidiFile); iTrack++) {
+    pMp->pMidiFile->Track[iTrack].deltaTime -= deltaTick;
+    pMp->trackIsFinished = pMp->pMidiFile->Track[iTrack].ptrNew == pMp->pMidiFile->Track[iTrack].pEndNew;
+
+    if (!pMp->trackIsFinished) {
+      pMp->allTracksAreFinished = false;
+      eventsNeedToBeFetched = isItTimeToFireThisEvent(pMp, iTrack);
+    }
+  }
+
+  pMp->lastTick = pMp->currentTick;
+
+  return eventsNeedToBeFetched;
+}
+
 bool midiPlayerTick(MIDI_PLAYER* pMidiPlayer) {
   MIDI_PLAYER* pMp = pMidiPlayer;
 
   if (pMp->pMidiFile == NULL)
     return false;
 
-  if (fabs(pMp->lastMsPerTick - pMp->pMidiFile->msPerTick) > 0.001f) { // TODO: avoid floating point operation here!
-    // On a tempo change we need to transform the old absolute time scale to the new scale.
-    pMp->timeScaleFactor = pMp->lastMsPerTick / pMp->pMidiFile->msPerTick;
-    pMp->lastTick *= pMp->timeScaleFactor;
-  }
-  pMp->lastMsPerTick = pMp->pMidiFile->msPerTick;
-  pMp->currentTick = (hal_clock() - pMp->startTime) / pMp->pMidiFile->msPerTick;
-  pMp->eventsNeedToBeFetched = true;
-
-  while (pMp->eventsNeedToBeFetched) { // This loop keeps all tracks synchronized in case of a lag
-    pMp->eventsNeedToBeFetched = false;
-    pMp->allTracksAreFinished = true;
-    pMp->deltaTick = pMp->currentTick - pMp->lastTick;
-    if (pMp->deltaTick < 0) {
-      hal_printfWarning("Warning: deltaTick is negative! Fast forward? deltaTick=%d", pMp->deltaTick);
-      // TODO: correct time here, to prevent skips on following tempo changes!
-      pMp->deltaTick = 0;
-    }
-
-    for (int iTrack = 0; iTrack < midiReadGetNumTracks(pMp->pMidiFile); iTrack++) {
-      pMp->pMidiFile->Track[iTrack].deltaTime -= pMp->deltaTick;
-      pMp->trackIsFinished = pMp->pMidiFile->Track[iTrack].ptrNew == pMp->pMidiFile->Track[iTrack].pEndNew;
-
-      if (!pMp->trackIsFinished) {
-        if (pMp->pMidiFile->Track[iTrack].deltaTime <= 0 && !pMp->trackIsFinished) { // Is it time to play this event?
-          dispatchMidiMsg(pMp, iTrack); // shoot
-
-          // Debug 1/2
-          int32_t expectedWaitTime = pMp->pMidiFile->Track[iTrack].debugLastMsgDt * pMp->lastMsPerTick;
-          int32_t realWaitTime = hal_clock() - pMp->pMidiFile->Track[iTrack].debugLastClock;
-          int32_t diff = realWaitTime - expectedWaitTime;
-
-          if (abs(diff > 10))
-            hal_printfWarning("Expected: %d ms, real: %d ms, diff: %d ms", 
-              expectedWaitTime, realWaitTime, diff);
-          // ---
-
-          midiReadGetNextMessage(pMp->pMidiFile, iTrack, &pMp->msg[iTrack]); // reload
-          pMp->pMidiFile->Track[iTrack].deltaTime += pMp->msg[iTrack].dt;
-
-          // Debug 2/2
-          pMp->pMidiFile->Track[iTrack].debugLastClock = hal_clock();
-          pMp->pMidiFile->Track[iTrack].debugLastMsgDt = pMp->msg[iTrack].dt;
-          // ---
-        }
-
-        if (pMp->pMidiFile->Track[iTrack].deltaTime <= 0 && !pMp->trackIsFinished)
-          pMp->eventsNeedToBeFetched = true;
-
-        pMp->allTracksAreFinished = false;
-      }
-      pMp->lastTick = pMp->currentTick;
-    }
-  }
+  pMp->currentTick = (hal_clock() * 1000 - pMp->startTime) / pMp->pMidiFile->usPerTick;
+  while (processTracks(pMidiPlayer)); // This loop keeps all tracks synchronized in case of a lag
 
   return !pMp->allTracksAreFinished; // TODO: close file
 }

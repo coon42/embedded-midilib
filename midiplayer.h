@@ -38,12 +38,9 @@ typedef struct {
   int32_t startTime;
   int32_t currentTick;
   int32_t lastTick;
-  int32_t deltaTick; // Must NEVER be negative!!!
-  bool eventsNeedToBeFetched;
   bool trackIsFinished;
   bool allTracksAreFinished;
-  float lastMsPerTick;
-  float timeScaleFactor;
+  int32_t lastUsPerTick;
 
   // Callback function pointers
   OnNoteOffCallback_t pOnNoteOffCb;
@@ -100,5 +97,6 @@ void midiplayer_init(MIDI_PLAYER* mpl,
 
 bool midiPlayerTick(MIDI_PLAYER* pMidiPlayer);
 bool playMidiFile(MIDI_PLAYER* pMidiPlayer, const char *pFilename);
+void adjustTimeFactor(MIDI_PLAYER* pMp);
 
 #endif // __MIDIFILE_H

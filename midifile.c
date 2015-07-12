@@ -118,8 +118,8 @@ int32_t readDwordFromFile(FILE* pFile, uint32_t* dst, int32_t startPos) {
   return readChunkFromFile(pFile, dst, startPos, sizeof(uint32_t));
 }
 
-void setPlaybackTempo(_MIDI_FILE* midiFile, int32_t bpm) {
-  midiFile->msPerTick = 60000.0f / (bpm * midiFile->Header.PPQN);
+void setPlaybackTempo(_MIDI_FILE* pMidiFile, int32_t bpm) {
+  pMidiFile->usPerTick = 60000000.0f / (bpm * pMidiFile->Header.PPQN);
 }
 
 
