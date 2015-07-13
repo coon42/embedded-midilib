@@ -23,7 +23,6 @@
 *
 *
 * TODO: - rename midi events to standard names
-*       - avoid floating point operations on playback
 *
 */
 
@@ -233,12 +232,27 @@ bool playMidiFile(MIDI_PLAYER* pMidiPlayer, const char *pFilename) {
 }
 
 void adjustTimeFactor(MIDI_PLAYER* pMp) {
-  float timeScaleFactor;
-  // On a tempo change we need to transform the old absolute time scale to the new scale by setting the
-  // current tick to the right position.
+  // On a tempo change we need to transform the old absolute time scale to the new scale by setting the current 
+  // tick to the right position.
 
-  timeScaleFactor = (float)pMp->lastUsPerTick / pMp->pMidiFile->usPerTick;
-  pMp->currentTick = (pMp->currentTick * timeScaleFactor);
+  // To avoid floating point operations, a technique called "fixed point arithmetic" is used here.
+  // This is simply done by shifting the values, calculating them und shifting them back the same amount to
+  // get the result. To control the precision you can adjust the PRECISION constant. Using too high values
+  // may lead to an int32 overflow so a compromise between accuracy and integer size must be met.
+  // A value between 5 - 8 seem to be a good choice. Anything lower than 5 leads to audio glitches.
+  // The fixed point operation is equvalent to the following floating point operations:
+
+  // float timeScaleFactor = (float)pMp->lastUsPerTick / pMp->pMidiFile->usPerTick;
+  // pMp->currentTick * timeScaleFactor;
+
+  const uint32_t PRECISION = 8;
+  int32_t fracFixed = (pMp->currentTick << PRECISION) / pMp->pMidiFile->usPerTick;
+  int32_t mulFixed = fracFixed * pMp->lastUsPerTick;
+
+  if (mulFixed > INT32_MAX - INT32_MAX / 4)
+    hal_printfWarning("Warning: mulFixed value is about to overflow! (%d / %d)", mulFixed, INT32_MAX);
+  
+  pMp->currentTick = mulFixed >> PRECISION;
   pMp->lastUsPerTick = pMp->pMidiFile->usPerTick;
 }
 
@@ -252,8 +266,7 @@ bool isItTimeToFireThisEvent(MIDI_PLAYER* pMp, int iTrack) {
     int32_t diff = realWaitTime - expectedWaitTime;
 
     if (abs(diff > 10))
-      hal_printfWarning("Expected: %d ms, real: %d ms, diff: %d ms",
-      expectedWaitTime, realWaitTime, diff);
+      hal_printfWarning("Expected: %d ms, real: %d ms, diff: %d ms", expectedWaitTime, realWaitTime, diff);
     // ---
 
     midiReadGetNextMessage(pMp->pMidiFile, iTrack, &pMp->msg[iTrack]); // reload
