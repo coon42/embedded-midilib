@@ -240,7 +240,7 @@ void adjustTimeFactor(MIDI_PLAYER* pMp) {
   // get the result. To control the precision you can adjust the PRECISION constant. Using too high values
   // may lead to an int32 overflow so a compromise between accuracy and integer size must be met.
   // A value between 5 - 8 seem to be a good choice. Anything lower than 5 leads to audio glitches.
-  // The fixed point operation is equvalent to the following floating point operations:
+  // The fixed point operation is equvalent to the following floating point operation:
 
   // float timeScaleFactor = (float)pMp->lastUsPerTick / pMp->pMidiFile->usPerTick;
   // pMp->currentTick * timeScaleFactor;
@@ -249,11 +249,11 @@ void adjustTimeFactor(MIDI_PLAYER* pMp) {
   int32_t fracFixed = (pMp->currentTick << PRECISION) / pMp->pMidiFile->usPerTick;
   int32_t mulFixed = fracFixed * pMp->lastUsPerTick;
 
-  if (mulFixed > INT32_MAX - INT32_MAX / 4)
-    hal_printfWarning("Warning: mulFixed value is about to overflow! (%d / %d)", mulFixed, INT32_MAX);
-  
   pMp->currentTick = mulFixed >> PRECISION;
   pMp->lastUsPerTick = pMp->pMidiFile->usPerTick;
+
+  if (mulFixed > INT32_MAX - INT32_MAX / 4)
+    hal_printfWarning("Warning: mulFixed value is about to overflow! (%d / %d)", mulFixed, INT32_MAX);
 }
 
 bool isItTimeToFireThisEvent(MIDI_PLAYER* pMp, int iTrack) {
