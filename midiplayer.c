@@ -1,11 +1,14 @@
 /*
-* mididump.c - A complete textual dump of a MIDI file.
-*				Requires Steevs MIDI Library & Utilities
-*				as it demonstrates the text name resolution code.
-* Version 1.4
+* midiplayer.c - An asynchronous MIDI file player
 *
-*  AUTHOR: Steven Goodwin (StevenGoodwin@gmail.com)
-*			Copyright 2010, Steven Goodwin.
+* Description: Plays MIDI files in an asynchronous way. MIDI events are provided by registring callbacks.
+*              The playback mechanism has to be triggered by calling midiPlayerTick() function regulary.
+* Version: 0.9
+*
+* Author: Stephan Thiele (stephant86@gmail.com)
+*     Copyright 2016, Stephan Thiele.
+
+*  Based on midilib library of Steven Goodwin (https://github.com/MarquisdeGeek/midilib)
 *
 *  This program is free software; you can redistribute it and/or
 *  modify it under the terms of the GNU General Public License as
@@ -41,130 +44,159 @@
 
 static void dispatchMidiMsg(MIDI_PLAYER* pMidiPlayer, int32_t trackIndex) {
   MIDI_MSG* msg = &pMidiPlayer->msg[trackIndex];
-
   int32_t eventType = msg->bImpliedMsg ? msg->iImpliedMsg : msg->iType;
+
   switch (eventType) {
     case	msgNoteOff:
       if (pMidiPlayer->pOnNoteOffCb)
-        pMidiPlayer->pOnNoteOffCb(trackIndex, msg->dwAbsPos, msg->MsgData.NoteOff.iChannel, msg->MsgData.NoteOff.iNote);
+        pMidiPlayer->pOnNoteOffCb(trackIndex, msg->dwAbsPos, msg->MsgData.NoteOff.iChannel,
+            msg->MsgData.NoteOff.iNote);
       break;
+
     case	msgNoteOn:
       if (pMidiPlayer->pOnNoteOnCb)
-        pMidiPlayer->pOnNoteOnCb(trackIndex, msg->dwAbsPos, msg->MsgData.NoteOn.iChannel, msg->MsgData.NoteOn.iNote, msg->MsgData.NoteOn.iVolume);
+        pMidiPlayer->pOnNoteOnCb(trackIndex, msg->dwAbsPos, msg->MsgData.NoteOn.iChannel,
+            msg->MsgData.NoteOn.iNote, msg->MsgData.NoteOn.iVolume);
       break;
+
     case	msgNoteKeyPressure:
       if (pMidiPlayer->pOnNoteKeyPressureCb)
-        pMidiPlayer->pOnNoteKeyPressureCb(trackIndex, msg->dwAbsPos, msg->MsgData.NoteKeyPressure.iChannel, msg->MsgData.NoteKeyPressure.iNote, msg->MsgData.NoteKeyPressure.iPressure);
+        pMidiPlayer->pOnNoteKeyPressureCb(trackIndex, msg->dwAbsPos, msg->MsgData.NoteKeyPressure.iChannel,
+            msg->MsgData.NoteKeyPressure.iNote, msg->MsgData.NoteKeyPressure.iPressure);
       break;
+
     case	msgControlChange:
       if (pMidiPlayer->pOnSetParameterCb)
-        pMidiPlayer->pOnSetParameterCb(trackIndex, msg->dwAbsPos, msg->MsgData.NoteParameter.iChannel, msg->MsgData.NoteParameter.iControl, msg->MsgData.NoteParameter.iParam);
+        pMidiPlayer->pOnSetParameterCb(trackIndex, msg->dwAbsPos, msg->MsgData.NoteParameter.iChannel,
+            msg->MsgData.NoteParameter.iControl, msg->MsgData.NoteParameter.iParam);
       break;
+
     case	msgSetProgram:
       if (pMidiPlayer->pOnSetProgramCb)
-        pMidiPlayer->pOnSetProgramCb(trackIndex, msg->dwAbsPos, msg->MsgData.ChangeProgram.iChannel, msg->MsgData.ChangeProgram.iProgram);
+        pMidiPlayer->pOnSetProgramCb(trackIndex, msg->dwAbsPos, msg->MsgData.ChangeProgram.iChannel,
+            msg->MsgData.ChangeProgram.iProgram);
       break;
+
     case	msgChangePressure:
       if (pMidiPlayer->pOnChangePressureCb)
-        pMidiPlayer->pOnChangePressureCb(trackIndex, msg->dwAbsPos, msg->MsgData.ChangePressure.iChannel, msg->MsgData.ChangePressure.iPressure);
+        pMidiPlayer->pOnChangePressureCb(trackIndex, msg->dwAbsPos, msg->MsgData.ChangePressure.iChannel,
+            msg->MsgData.ChangePressure.iPressure);
       break;
+
     case	msgSetPitchWheel:
       if (pMidiPlayer->pOnSetPitchWheelCb)
-        pMidiPlayer->pOnSetPitchWheelCb(trackIndex, msg->dwAbsPos, msg->MsgData.PitchWheel.iChannel, msg->MsgData.PitchWheel.iPitch + 8192);
+        pMidiPlayer->pOnSetPitchWheelCb(trackIndex, msg->dwAbsPos, msg->MsgData.PitchWheel.iChannel,
+            msg->MsgData.PitchWheel.iPitch + 8192);
       break;
+
     case	msgMetaEvent:
       switch (msg->MsgData.MetaEvent.iType) {
-      case	metaMIDIPort:
-        if (pMidiPlayer->pOnMetaMIDIPortCb)
-          pMidiPlayer->pOnMetaMIDIPortCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.iMIDIPort);
-        break;
-      case	metaSequenceNumber:
-        if (pMidiPlayer->pOnMetaSequenceNumberCb)
-          pMidiPlayer->pOnMetaSequenceNumberCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.iSequenceNumber);
-        break;
-      case	metaTextEvent:
-        if (pMidiPlayer->pOnMetaTextEventCb)
-          pMidiPlayer->pOnMetaTextEventCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
-        break;
-      case	metaCopyright:
-        if (pMidiPlayer->pOnMetaCopyrightCb)
-          pMidiPlayer->pOnMetaCopyrightCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
-        break;
-      case	metaTrackName:
-        if (pMidiPlayer->pOnMetaTrackNameCb)
-          pMidiPlayer->pOnMetaTrackNameCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
-        break;
-      case	metaInstrument:
-        if (pMidiPlayer->pOnMetaInstrumentCb)
-          pMidiPlayer->pOnMetaInstrumentCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
-        break;
-      case	metaLyric:
-        if (pMidiPlayer->pOnMetaLyricCb)
-          pMidiPlayer->pOnMetaLyricCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
-        break;
-      case	metaMarker:
-        if (pMidiPlayer->pOnMetaMarkerCb)
-          pMidiPlayer->pOnMetaMarkerCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
-        break;
-      case	metaCuePoint:
-        if (pMidiPlayer->pOnMetaCuePointCb)
-          pMidiPlayer->pOnMetaCuePointCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
-        break;
-      case	metaEndSequence:
-        if (pMidiPlayer->pOnMetaEndSequenceCb)
-          pMidiPlayer->pOnMetaEndSequenceCb(trackIndex, msg->dwAbsPos);
-        break;
-      case	metaSetTempo:
-        setPlaybackTempo(pMidiPlayer->pMidiFile, msg->MsgData.MetaEvent.Data.Tempo.iBPM);
-        adjustTimeFactor(pMidiPlayer);
+        case	metaMIDIPort:
+          if (pMidiPlayer->pOnMetaMIDIPortCb)
+            pMidiPlayer->pOnMetaMIDIPortCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.iMIDIPort);
+          break;
 
-        if (pMidiPlayer->pOnMetaSetTempoCb)
-          pMidiPlayer->pOnMetaSetTempoCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Tempo.iBPM);
-        break;
-      case	metaSMPTEOffset:
-        if (pMidiPlayer->pOnMetaSMPTEOffsetCb)
-          pMidiPlayer->pOnMetaSMPTEOffsetCb(trackIndex, msg->dwAbsPos,
-            msg->MsgData.MetaEvent.Data.SMPTE.iHours,
-            msg->MsgData.MetaEvent.Data.SMPTE.iMins,
-            msg->MsgData.MetaEvent.Data.SMPTE.iSecs,
-            msg->MsgData.MetaEvent.Data.SMPTE.iFrames,
-            msg->MsgData.MetaEvent.Data.SMPTE.iFF
-          );
-        break;
-      case	metaTimeSig:
-        // TODO: Metronome and thirtyseconds are missing!!!
-        if (pMidiPlayer->pOnMetaTimeSigCb)
-          pMidiPlayer->pOnMetaTimeSigCb(trackIndex,
-            msg->dwAbsPos,
-            msg->MsgData.MetaEvent.Data.TimeSig.iNom,
-            msg->MsgData.MetaEvent.Data.TimeSig.iDenom / MIDI_NOTE_CROCHET,
-            0, 0
-          );
-        break;
-      case	metaKeySig: // TODO: scale is missing!!!
-        if (pMidiPlayer->pOnMetaKeySigCb)
-          pMidiPlayer->pOnMetaKeySigCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.KeySig.iKey, 0);
-        break;
-      case	metaSequencerSpecific:
-        if (pMidiPlayer->pOnMetaSequencerSpecificCb)
-          pMidiPlayer->pOnMetaSequencerSpecificCb(trackIndex, msg->dwAbsPos,
-            msg->MsgData.MetaEvent.Data.Sequencer.pData, msg->MsgData.MetaEvent.Data.Sequencer.iSize
-          );
-        break;
+        case	metaSequenceNumber:
+          if (pMidiPlayer->pOnMetaSequenceNumberCb)
+            pMidiPlayer->pOnMetaSequenceNumberCb(trackIndex, msg->dwAbsPos,
+                msg->MsgData.MetaEvent.Data.iSequenceNumber);
+          break;
+
+        case	metaTextEvent:
+          if (pMidiPlayer->pOnMetaTextEventCb)
+            pMidiPlayer->pOnMetaTextEventCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
+          break;
+
+        case	metaCopyright:
+          if (pMidiPlayer->pOnMetaCopyrightCb)
+            pMidiPlayer->pOnMetaCopyrightCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
+          break;
+
+        case	metaTrackName:
+          if (pMidiPlayer->pOnMetaTrackNameCb)
+            pMidiPlayer->pOnMetaTrackNameCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
+          break;
+
+        case	metaInstrument:
+          if (pMidiPlayer->pOnMetaInstrumentCb)
+            pMidiPlayer->pOnMetaInstrumentCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
+          break;
+
+        case	metaLyric:
+          if (pMidiPlayer->pOnMetaLyricCb)
+            pMidiPlayer->pOnMetaLyricCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
+          break;
+
+        case	metaMarker:
+          if (pMidiPlayer->pOnMetaMarkerCb)
+            pMidiPlayer->pOnMetaMarkerCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
+          break;
+
+        case	metaCuePoint:
+          if (pMidiPlayer->pOnMetaCuePointCb)
+            pMidiPlayer->pOnMetaCuePointCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Text.pData);
+          break;
+
+        case	metaEndSequence:
+          if (pMidiPlayer->pOnMetaEndSequenceCb)
+            pMidiPlayer->pOnMetaEndSequenceCb(trackIndex, msg->dwAbsPos);
+          break;
+
+        case	metaSetTempo:
+          setPlaybackTempo(pMidiPlayer->pMidiFile, msg->MsgData.MetaEvent.Data.Tempo.iBPM);
+          adjustTimeFactor(pMidiPlayer);
+
+          if (pMidiPlayer->pOnMetaSetTempoCb)
+            pMidiPlayer->pOnMetaSetTempoCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.Tempo.iBPM);
+          break;
+
+        case	metaSMPTEOffset:
+          if (pMidiPlayer->pOnMetaSMPTEOffsetCb)
+            pMidiPlayer->pOnMetaSMPTEOffsetCb(trackIndex, msg->dwAbsPos,
+              msg->MsgData.MetaEvent.Data.SMPTE.iHours,
+              msg->MsgData.MetaEvent.Data.SMPTE.iMins,
+              msg->MsgData.MetaEvent.Data.SMPTE.iSecs,
+              msg->MsgData.MetaEvent.Data.SMPTE.iFrames,
+              msg->MsgData.MetaEvent.Data.SMPTE.iFF
+            );
+          break;
+
+        case	metaTimeSig:
+          // TODO: Metronome and thirtyseconds are missing!!!
+          if (pMidiPlayer->pOnMetaTimeSigCb)
+            pMidiPlayer->pOnMetaTimeSigCb(trackIndex,
+              msg->dwAbsPos,
+              msg->MsgData.MetaEvent.Data.TimeSig.iNom,
+              msg->MsgData.MetaEvent.Data.TimeSig.iDenom / MIDI_NOTE_CROCHET,
+              0, 0
+            );
+          break;
+
+        case	metaKeySig: // TODO: scale is missing!!!
+          if (pMidiPlayer->pOnMetaKeySigCb)
+            pMidiPlayer->pOnMetaKeySigCb(trackIndex, msg->dwAbsPos, msg->MsgData.MetaEvent.Data.KeySig.iKey, 0);
+          break;
+
+        case	metaSequencerSpecific:
+          if (pMidiPlayer->pOnMetaSequencerSpecificCb)
+            pMidiPlayer->pOnMetaSequencerSpecificCb(trackIndex, msg->dwAbsPos,
+              msg->MsgData.MetaEvent.Data.Sequencer.pData, msg->MsgData.MetaEvent.Data.Sequencer.iSize);
+          break;
       }
       break;
 
     case	msgSysEx1:
     case	msgSysEx2:
       if (pMidiPlayer->pOnMetaSysExCb)
-        pMidiPlayer->pOnMetaSysExCb(trackIndex, msg->dwAbsPos, msg->MsgData.SysEx.pData, msg->MsgData.SysEx.iSize);
+        pMidiPlayer->pOnMetaSysExCb(trackIndex, msg->dwAbsPos, msg->MsgData.SysEx.pData,
+            msg->MsgData.SysEx.iSize);
       break;
     }
 }
 
 void midiplayer_init(MIDI_PLAYER* mpl, OnNoteOffCallback_t pOnNoteOffCb, OnNoteOnCallback_t pOnNoteOnCb,
     OnNoteKeyPressureCallback_t pOnNoteKeyPressureCb, OnSetParameterCallback_t pOnSetParameterCb,
-    OnSetProgramCallback_t pOnSetProgramCb, OnChangePressureCallback_t pOnChangePressureCb, 
+    OnSetProgramCallback_t pOnSetProgramCb, OnChangePressureCallback_t pOnChangePressureCb,
     OnSetPitchWheelCallback_t pOnSetPitchWheelCb, OnMetaMIDIPortCallback_t pOnMetaMIDIPortCb,
     OnMetaSequenceNumberCallback_t pOnMetaSequenceNumberCb, OnMetaTextEventCallback_t pOnMetaTextEventCb,
     OnMetaCopyrightCallback_t pOnMetaCopyrightCb, OnMetaTrackNameCallback_t pOnMetaTrackNameCb,
@@ -203,9 +235,10 @@ void midiplayer_init(MIDI_PLAYER* mpl, OnNoteOffCallback_t pOnNoteOffCb, OnNoteO
 
 bool midiPlayerOpenFile(MIDI_PLAYER* pMidiPlayer, const char* pFileName) {
   pMidiPlayer->pMidiFile = midiFileOpen(pFileName);
+
   if (!pMidiPlayer->pMidiFile)
     return false;
-  
+
   // Load initial midi events
   for (int iTrack = 0; iTrack < midiReadGetNumTracks(pMidiPlayer->pMidiFile); iTrack++) {
     midiReadGetNextMessage(pMidiPlayer->pMidiFile, iTrack, &pMidiPlayer->msg[iTrack]);
@@ -229,6 +262,7 @@ bool playMidiFile(MIDI_PLAYER* pMidiPlayer, const char *pFilename) {
   hal_printfInfo("Midi Format: %d", pMidiPlayer->pMidiFile->Header.iVersion);
   hal_printfInfo("Number of tracks: %d", midiReadGetNumTracks(pMidiPlayer->pMidiFile));
   hal_printfSuccess("Start playing...");
+
   return true;
 }
 
@@ -301,7 +335,7 @@ bool processTracks(MIDI_PLAYER* pMp) {
 bool midiPlayerTick(MIDI_PLAYER* pMidiPlayer) {
   MIDI_PLAYER* pMp = pMidiPlayer;
 
-  if (pMp->pMidiFile == NULL)
+  if (!pMp->pMidiFile)
     return false;
 
   pMp->currentTick = (hal_clock() * 1000 - pMp->startTime) / pMp->pMidiFile->usPerTick;
