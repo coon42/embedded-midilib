@@ -45,7 +45,6 @@ _MIDI_FILE _midiFile; // TODO: let the user define and pass the instance, so it 
 // cache (Only for midi 0 files!)
 static uint8_t g_cache[PLAYBACK_CACHE_SIZE];
 static int32_t g_cacheStartPos = 0;
-static int32_t g_cacheEndPos = 0;
 static bool cacheInitialized = false;
 
 // TODO: lay out to external callback handler
@@ -68,7 +67,6 @@ uint32_t readDataToCache(FILE* pFile, uint8_t* cache, int32_t startPos, int32_t 
 uint32_t readChunkFromCache(void* dst, uint8_t* cache, uint32_t cacheStartPos, int32_t startPos, int32_t num) {
   // This functions reads data from cache and returns the number of bytes read.
   // If the requested chunk is not in cache, 0 will be returned.
-  int32_t startPosInCache = startPos - cacheStartPos;
   int32_t bytesToRead = num <= PLAYBACK_CACHE_SIZE ? num : PLAYBACK_CACHE_SIZE;
 
   if (!cacheInitialized || !requestedChunkStartIsInCache(startPos, num, cacheStartPos, PLAYBACK_CACHE_SIZE))
@@ -231,7 +229,6 @@ MIDI_FILE  *midiFileOpen(const char *pFilename) {
 ** midiRead* Functions
 */
 
-// ok!
 static uint32_t _midiReadVarLen(_MIDI_FILE* pMFembedded, uint32_t* ptrNew, uint32_t* numEmbedded) {
   uint32_t valueEmbedded; // TODO: uint8_t instead of uint32_t ???
   uint8_t c;
@@ -256,10 +253,9 @@ static uint32_t _midiReadVarLen(_MIDI_FILE* pMFembedded, uint32_t* ptrNew, uint3
   return(*ptrNew);
 }
 
-// ok!
 static bool _midiReadTrackCopyData(_MIDI_FILE* pMFembedded, MIDI_MSG* pMsgEmbedded, uint32_t ptrEmbedded, size_t* szEmbedded, bool bCopyPtrData) {
   if (*szEmbedded > META_EVENT_MAX_DATA_SIZE) {
-    printf("\r\n_midiReadTrackCopyData; Warning: Meta data is greater than maximum size! (%d of %d)\r\n", szEmbedded, META_EVENT_MAX_DATA_SIZE);
+    printf("\r\n_midiReadTrackCopyData; Warning: Meta data is greater than maximum size! (%zu of %d)\r\n", *szEmbedded, META_EVENT_MAX_DATA_SIZE);
     *szEmbedded = META_EVENT_MAX_DATA_SIZE; // truncate meta data, since we don't have enough space
   }
 
@@ -271,7 +267,6 @@ static bool _midiReadTrackCopyData(_MIDI_FILE* pMFembedded, MIDI_MSG* pMsgEmbedd
   return true;
 }
 
-// ok!
 int32_t midiReadGetNumTracks(const MIDI_FILE *_pMFembedded) {
   _VAR_CAST;
   return pMFembedded->Header.iNumTracks <= MAX_MIDI_TRACKS ? pMFembedded->Header.iNumTracks : MAX_MIDI_TRACKS;
@@ -551,14 +546,14 @@ bool midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_
 
   return true;
 }
- // ok!
+
 void midiReadInitMessage(MIDI_MSG *pMsg) {
   pMsg->data_sz_embedded = 0;
   pMsg->bImpliedMsg = false;
 }
 
 // TODO: 'open for write' implementation!
-bool	midiFileClose(MIDI_FILE* _pMFembedded) {
+bool midiFileClose(MIDI_FILE* _pMFembedded) {
   _VAR_CAST;
   if (!IsFilePtrValid(pMFembedded))			return false;
 
