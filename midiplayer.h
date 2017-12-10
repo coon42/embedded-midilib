@@ -69,7 +69,7 @@ typedef struct {
 
 } MIDI_PLAYER;
 
-void midiplayer_init(MIDI_PLAYER* mpl, 
+void midiplayer_init(MIDI_PLAYER* mpl,
   OnNoteOffCallback_t pOnNoteOffCb,
   OnNoteOnCallback_t pOnNoteOnCb,
   OnNoteKeyPressureCallback_t pOnNoteKeyPressureCb,

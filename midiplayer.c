@@ -163,7 +163,7 @@ static void dispatchMidiMsg(MIDI_PLAYER* pMidiPlayer, int32_t trackIndex) {
 
 void midiplayer_init(MIDI_PLAYER* mpl, OnNoteOffCallback_t pOnNoteOffCb, OnNoteOnCallback_t pOnNoteOnCb,
     OnNoteKeyPressureCallback_t pOnNoteKeyPressureCb, OnSetParameterCallback_t pOnSetParameterCb,
-    OnSetProgramCallback_t pOnSetProgramCb, OnChangePressureCallback_t pOnChangePressureCb, 
+    OnSetProgramCallback_t pOnSetProgramCb, OnChangePressureCallback_t pOnChangePressureCb,
     OnSetPitchWheelCallback_t pOnSetPitchWheelCb, OnMetaMIDIPortCallback_t pOnMetaMIDIPortCb,
     OnMetaSequenceNumberCallback_t pOnMetaSequenceNumberCb, OnMetaTextEventCallback_t pOnMetaTextEventCb,
     OnMetaCopyrightCallback_t pOnMetaCopyrightCb, OnMetaTrackNameCallback_t pOnMetaTrackNameCb,
@@ -204,7 +204,7 @@ bool midiPlayerOpenFile(MIDI_PLAYER* pMidiPlayer, const char* pFileName) {
   pMidiPlayer->pMidiFile = midiFileOpen(pFileName);
   if (!pMidiPlayer->pMidiFile)
     return false;
-  
+
   // Load initial midi events
   for (int iTrack = 0; iTrack < midiReadGetNumTracks(pMidiPlayer->pMidiFile); iTrack++) {
     midiReadGetNextMessage(pMidiPlayer->pMidiFile, iTrack, &pMidiPlayer->msg[iTrack]);
@@ -232,7 +232,7 @@ bool playMidiFile(MIDI_PLAYER* pMidiPlayer, const char *pFilename) {
 }
 
 void adjustTimeFactor(MIDI_PLAYER* pMp) {
-  // On a tempo change we need to transform the old absolute time scale to the new scale by setting the current 
+  // On a tempo change we need to transform the old absolute time scale to the new scale by setting the current
   // tick to the right position.
 
   // To avoid floating point operations, a technique called "fixed point arithmetic" is used here.
