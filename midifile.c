@@ -61,7 +61,7 @@ bool requestedChunkStartIsInCache(int32_t startPos, int32_t reqSize, int32_t cac
 uint32_t readDataToCache(FILE* pFile, uint8_t* cache, int32_t startPos, int32_t num) {
   g_cacheStartPos = startPos;
   cacheInitialized = true;
-  hal_fseek(pFile, startPos); 
+  hal_fseek(pFile, startPos);
   return hal_fread(pFile, cache, num);
 }
 
@@ -92,7 +92,7 @@ int32_t readChunkFromFile(FILE* pFile, void* dst, int32_t startPos, size_t num) 
 
     if (num) {
       // For an unknown reason, sometimes after caching, a few bytes earlier are requested, which will result
-      // into another cache miss. To prevent this unnecessary cache miss, a few bytes earlier, from the 
+      // into another cache miss. To prevent this unnecessary cache miss, a few bytes earlier, from the
       // requested starting position will be cached.
       // TODO: Find out, which access causes this!
       onCacheMiss(startPos, num, g_cacheStartPos, PLAYBACK_CACHE_SIZE);
@@ -131,7 +131,7 @@ void setPlaybackTempo(_MIDI_FILE* pMidiFile, int32_t bpm) {
 #define SWAP_DWORD(d)		(uint32_t)((d)>>24)|(((d)>>8)&0xff00)|(((d)<<8)&0xff0000)|(((d)<<24))
 
 // WTF? What is the reason for this _VAR_CAST macro? Hiding content of _MIDI_FILE from user by casting from MIDI_FILE?
-#define _VAR_CAST				_MIDI_FILE *pMFembedded = (_MIDI_FILE *)_pMFembedded; 
+#define _VAR_CAST				_MIDI_FILE *pMFembedded = (_MIDI_FILE *)_pMFembedded;
 #define IsFilePtrValid(pMF)		(pMF)
 #define IsTrackValid(_x)		  (_midiValidateTrack(pMFembedded, _x))
 #define IsChannelValid(_x)		((_x)>=1 && (_x)<=16)
@@ -185,13 +185,13 @@ MIDI_FILE  *midiFileOpen(const char *pFilename) {
 
       readWordFromFile(pFileNew, &wDataNew, 8);
       _midiFile.Header.iVersion = (uint16_t)SWAP_WORD(wDataNew);
-          
+
       readWordFromFile(pFileNew, &wDataNew, 10);
       _midiFile.Header.iNumTracks = (uint16_t)SWAP_WORD(wDataNew);
 
       readWordFromFile(pFileNew, &wDataNew, 12);
       _midiFile.Header.PPQN = (uint16_t)SWAP_WORD(wDataNew);
-          
+
       ptrNew += _midiFile.Header.iHeaderSize + 8;
       /*
       **	 Get all tracks
@@ -202,7 +202,7 @@ MIDI_FILE  *midiFileOpen(const char *pFilename) {
         _midiFile.Track[iTrack].pos = 0;
         _midiFile.Track[iTrack].last_status = 0;
       }
-          
+
       for (int iTrack = 0; iTrack < _midiFile.Header.iNumTracks && iTrack < MAX_MIDI_TRACKS; ++iTrack) {
         _midiFile.Track[iTrack].pBaseNew = ptrNew;
 
@@ -217,14 +217,14 @@ MIDI_FILE  *midiFileOpen(const char *pFilename) {
       bValidFile = true;
     }
   }
-  
+
   if (!bValidFile)
     return NULL;
- 
+
   _midiFile.pFile = pFileNew;
   setPlaybackTempo(&_midiFile, MIDI_BPM_DEFAULT);
 
-  return (MIDI_FILE *)&_midiFile;  
+  return (MIDI_FILE *)&_midiFile;
 }
 
 /*
@@ -236,9 +236,9 @@ static uint32_t _midiReadVarLen(_MIDI_FILE* pMFembedded, uint32_t* ptrNew, uint3
   uint32_t valueEmbedded; // TODO: uint8_t instead of uint32_t ???
   uint8_t c;
 
-  // Variable-length values use the lower 7 bits of a byte for data and the top bit to signal a following data byte. 
+  // Variable-length values use the lower 7 bits of a byte for data and the top bit to signal a following data byte.
   // If the top bit is set to 1 (0x80), then another value byte follows.
-  // A variable - length value may use a maximum of 4 bytes. This means the maximum value that can be represented is 
+  // A variable - length value may use a maximum of 4 bytes. This means the maximum value that can be represented is
   // 0x0FFFFFFF (represented as 0xFF, 0xFF, 0xFF, 0x7F).
 
   // TODO: always preload 4 bytes?
@@ -259,7 +259,7 @@ static uint32_t _midiReadVarLen(_MIDI_FILE* pMFembedded, uint32_t* ptrNew, uint3
 // ok!
 static bool _midiReadTrackCopyData(_MIDI_FILE* pMFembedded, MIDI_MSG* pMsgEmbedded, uint32_t ptrEmbedded, size_t* szEmbedded, bool bCopyPtrData) {
   if (*szEmbedded > META_EVENT_MAX_DATA_SIZE) {
-    printf("\r\n_midiReadTrackCopyData; Warning: Meta data is greater than maximum size! (%d of %d)\r\n", szEmbedded, META_EVENT_MAX_DATA_SIZE);
+    printf("\r\n_midiReadTrackCopyData; Warning: Meta data is greater than maximum size! (%zu of %d)\r\n", *szEmbedded, META_EVENT_MAX_DATA_SIZE);
     *szEmbedded = META_EVENT_MAX_DATA_SIZE; // truncate meta data, since we don't have enough space
   }
 
@@ -285,12 +285,12 @@ bool midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_
 
   _VAR_CAST;
   if (!IsTrackValid(iTrack))			return false;
-  
+
   pTrackNew = &pMFembedded->Track[iTrack];
   /* FIXME: Check if there is data on this track first!!!	*/
   if(pTrackNew->ptrNew >= pTrackNew->pEndNew)
     return false;
-      
+
   // Read Delta Time
   _midiReadVarLen(pMFembedded, &pTrackNew->ptrNew, &pMsgEmbedded->dt);
   pTrackNew->pos += pMsgEmbedded->dt;
@@ -318,7 +318,7 @@ bool midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_
 
   if (!bRunningStatus)
     pMsgEmbedded->iLastMsgChnl = (uint8_t)(eventType & 0x0f) + 1;
-  
+
   switch (pMsgEmbedded->iType) {
     // -------------------------
     // -    Channel Events     -
@@ -343,7 +343,7 @@ bool midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_
       pMsgEmbedded->iMsgSize = 3;
       break;
     }
-      
+
     case	msgNoteKeyPressure: { // 0x0A 'Note Aftertouch'
       uint8_t tmpNote = 0;
       uint8_t tmpPressure = 0;
@@ -429,7 +429,7 @@ bool midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_
               pMsgEmbedded->MsgData.MetaEvent.Data.iSequenceNumber = tmpSequenceNumber;
               break;
             }
-       
+
         case	metaTextEvent:
         case	metaCopyright:
         case	metaTrackName:
@@ -513,13 +513,13 @@ bool midiReadGetNextMessage(const MIDI_FILE* _pMFembedded, int32_t iTrack, MIDI_
     case	msgSysEx1:
     case	msgSysEx2:
       bptrEmbedded = pTrackNew->ptrNew;
-      pTrackNew->ptrNew += 1; 
+      pTrackNew->ptrNew += 1;
       _midiReadVarLen(pMFembedded, &pTrackNew->ptrNew, &pMsgEmbedded->iMsgSize);
       szEmbedded = (pTrackNew->ptrNew - bptrEmbedded) + pMsgEmbedded->iMsgSize;
 
       if (_midiReadTrackCopyData(pMFembedded, pMsgEmbedded, pTrackNew->ptrNew, &szEmbedded, false) == false)
         return false;
-          
+
       /* Embedded: Now copy the data */
       readChunkFromFile(pMFembedded->pFile, pMsgEmbedded->dataEmbedded, bptrEmbedded, szEmbedded);
       pTrackNew->ptrNew += pMsgEmbedded->iMsgSize;
@@ -565,6 +565,6 @@ bool	midiFileClose(MIDI_FILE* _pMFembedded) {
   // TODO: open for writing implementation here!
   if (pMFembedded->pFile)
     return hal_fclose(pMFembedded->pFile);
-  
+
   return true;
 }

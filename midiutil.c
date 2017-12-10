@@ -197,41 +197,41 @@ static const char* szPatchList[128] = {
 
 static const char* szGMDrums[128] = {
   "???",	                /* C0 */
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
+  "???",
+  "???",
+  "???",
+  "???",
+  "???",
+  "???",
+  "???",
+  "???",
+  "???",
+  "???",
+  "???",
   "???",	                /* C1  */
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
-  "???",	                
+  "???",
+  "???",
+  "???",
+  "???",
+  "???",
+  "???",
+  "???",
+  "???",
+  "???",
+  "???",
+  "???",
   "???",	                /* C2 */
-  "???",	
-  "???",	
-  "High Q",	
-  "Slap",	
-  "???",	
-  "???",	
-  "Sticks",	
-  "Square click",	
-  "???",	
-  "???",	
-  "Acoustic Kick Drum",	
+  "???",
+  "???",
+  "High Q",
+  "Slap",
+  "???",
+  "???",
+  "Sticks",
+  "Square click",
+  "???",
+  "???",
+  "Acoustic Kick Drum",
   "Electric Kick Drum",		/* C3=36 */
   "Side Stick",
   "Acoustic Snare Drum",
@@ -281,9 +281,9 @@ static const char* szGMDrums[128] = {
   "Shaker",
   "Jingle Bell",
   "Tring",	              /* C7 */
-  "Castinets",	
-  "Mute Sudro",	
-  "Open Sudro",	
+  "Castinets",
+  "Mute Sudro",
+  "Open Sudro",
 };
 
 static const char* szCCList[128] = {
@@ -323,10 +323,10 @@ static const char* szCCList[128] = {
   "Undefined 31",
 
   /* LSB for control changes 0-31		32-63 */
-  "lsb-32", "lsb-33", "lsb-34", "lsb-35", "lsb-36", "lsb-37", "lsb-38", 
-  "lsb-39", "lsb-40", "lsb-41", "lsb-42", "lsb-43", "lsb-44", "lsb-45", 
-  "lsb-46", "lsb-47", "lsb-48", "lsb-49", "lsb-50", "lsb-51", "lsb-52", 
-  "lsb-53", "lsb-54", "lsb-55", "lsb-56", "lsb-57", "lsb-58", "lsb-59", 
+  "lsb-32", "lsb-33", "lsb-34", "lsb-35", "lsb-36", "lsb-37", "lsb-38",
+  "lsb-39", "lsb-40", "lsb-41", "lsb-42", "lsb-43", "lsb-44", "lsb-45",
+  "lsb-46", "lsb-47", "lsb-48", "lsb-49", "lsb-50", "lsb-51", "lsb-52",
+  "lsb-53", "lsb-54", "lsb-55", "lsb-56", "lsb-57", "lsb-58", "lsb-59",
   "lsb-60", "lsb-61", "lsb-62", "lsb-63",
 
   "Sustain Pedal",
@@ -763,8 +763,8 @@ bool muGetKeySigName(char *pName, tMIDI_KEYSIG iKey) {
   int32_t iFlats   = (iKey & keyMaskNeg);
   int32_t iMin     = (iKey & keyMaskMin);
 
-  strcpy(pName, iKeysList[iFlats ? 1 : 0][iRootNum]);
-  strcat(pName, iMin ? " Min" : " Maj");
+  strcpy_s(pName, 256, iKeysList[iFlats ? 1 : 0][iRootNum]);
+  strcat_s(pName, 256, iMin ? " Min" : " Maj");
   return true;
 }
 
@@ -804,13 +804,13 @@ int8_t muGetNoteFromName(const char *pName) {
   int8_t note = 0;
   char* p, cpy[16];
 
-  strncpy(cpy, pName, 15);
+  strncpy_s(cpy, 256, pName, 15);
   cpy[15] = '\0';
   p = cpy;
 
   while(!isalpha(*p) && *p)
     p++;
-  
+
   if (*p) {
     note = toupper(*p)-'A';
     if (note >= 0 && note <= 7) {
@@ -820,18 +820,18 @@ int8_t muGetNoteFromName(const char *pName) {
         note--, p++;
       else if (*p == '#')
         note++, p++;
-      
+
       note += atoi(p) * 12 + MIDI_NOTE_C0;
     }
   }
-  
+
   return note;
 }
 
 const char* muGetNameFromNote(int8_t iNote) {
   if (iNote < 0 || iNote > 127)
     return "ERR: Invalid note";
-  
+
   return szMidiNoteName[iNote + 24 + C0_BASE * 12];
 }
 
@@ -843,13 +843,13 @@ float muGetFreqFromNote(int8_t iNote) {
     return 0;
 
   freq = fMidiNoteFreqList[iNote];
-  
+
   while(oct > 0)
     freq *= 2.0f, oct--;
-  
+
   while(oct < 0)
     freq /= 2.0f, oct++;
-  
+
   return freq;
 }
 
@@ -863,20 +863,20 @@ int8_t muGetNoteFromFreq(float fFreq) {
 
   for(iNote = 0; iNote < 127; ++iNote) {
     f = muGetFreqFromNote(iNote) - fFreq;
-    
+
     if (f < 0)
       f = -f;
 
     if (f < fDiff) {
-      fDiff = f; 
+      fDiff = f;
       iBestNote = iNote;
     }
   }
-    
+
   return iBestNote;
 }
 
-int32_t muGuessChord(const int32_t *pNoteStatus, const int32_t channel, const int32_t lowRange, 
+int32_t muGuessChord(const int32_t *pNoteStatus, const int32_t channel, const int32_t lowRange,
     const int32_t highRange) {
 
   int32_t octave[24];
@@ -894,12 +894,12 @@ int32_t muGuessChord(const int32_t *pNoteStatus, const int32_t channel, const in
     if (pNoteStatus[channel * 128 + i]) {
       if (i < lowestNote)
         lowestNote = i;
-      
+
       ++octave[i % 12];
       ++octave[i % 12 + 12];
 
       if ((i % 12) < startNote)
-        startNote = i % 12;      
+        startNote = i % 12;
     }
   }
 
@@ -908,7 +908,7 @@ int32_t muGuessChord(const int32_t *pNoteStatus, const int32_t channel, const in
 
   /* Bring it into line with the 0-11 range */
   lowestNote %= 12;
-  
+
   /* Majors */
   if (octave[startNote+3] && octave[startNote+8]) {
     chordRoot = startNote+8;
@@ -950,7 +950,7 @@ int32_t muGuessChord(const int32_t *pNoteStatus, const int32_t channel, const in
 
   if (octave[chordRoot + 11])
     chordAdditions |= CHORD_ADD_MAJ7TH;
-  
+
   if (octave[chordRoot + 2])
     chordAdditions |= CHORD_ADD_9TH;
 
@@ -972,34 +972,34 @@ char *muGetChordName(char *str, int32_t chord) {
   if (bass < 0 || bass > 11)
     bass = 0;
 
-  strcpy(str, szNoteName[root]);
+  strcpy_s(str, 256, szNoteName[root]);
 
   switch(chord & CHORD_TYPE_MASK) {
     case CHORD_TYPE_MAJOR:
       break;
     case CHORD_TYPE_MINOR:
-      strcat(str, "m");
+      strcat_s(str, 256, "m");
       break;
     case CHORD_TYPE_AUG:
-      strcat(str, " aug");
+      strcat_s(str, 256, " aug");
       break;
     case CHORD_TYPE_DIM:
-      strcat(str, " dim");
+      strcat_s(str, 256, " dim");
       break;
   }
 
   if (chord & CHORD_ADD_7TH)
-    strcat(str, "+7");
- 
+    strcat_s(str, 256, "+7");
+
   if (chord & CHORD_ADD_9TH)
-    strcat(str, "+9");
-  
+    strcat_s(str, 256, "+9");
+
   if (chord & CHORD_ADD_MAJ7TH)
-    strcat(str, "+7M");
-  
+    strcat_s(str, 256, "+7M");
+
   if (bass != root) {
-    strcat(str, "/");
-    strcat(str, szNoteName[bass]);
+    strcat_s(str, 256, "/");
+    strcat_s(str, 256, szNoteName[bass]);
   }
 
   return str;
