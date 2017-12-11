@@ -33,16 +33,6 @@ typedef void(*OnMetaSysExCallback_t)(int32_t track, int32_t tick, void* pData, u
 // TODO: onCacheMiss()
 
 typedef struct {
-  _MIDI_FILE* pMidiFile;
-  MIDI_MSG msg[MAX_MIDI_TRACKS];
-  int32_t startTime;
-  int32_t currentTick;
-  int32_t lastTick;
-  bool trackIsFinished;
-  bool allTracksAreFinished;
-  int32_t lastUsPerTick;
-
-  // Callback function pointers
   OnNoteOffCallback_t pOnNoteOffCb;
   OnNoteOnCallback_t pOnNoteOnCb;
   OnNoteKeyPressureCallback_t pOnNoteKeyPressureCb;
@@ -66,35 +56,21 @@ typedef struct {
   OnMetaKeySigCallback_t pOnMetaKeySigCb;
   OnMetaSequencerSpecificCallback_t pOnMetaSequencerSpecificCb;
   OnMetaSysExCallback_t pOnMetaSysExCb;
+} MidiPlayerCallbacks_t;
 
+typedef struct {
+  _MIDI_FILE* pMidiFile;
+  MIDI_MSG msg[MAX_MIDI_TRACKS];
+  int32_t startTime;
+  int32_t currentTick;
+  int32_t lastTick;
+  bool trackIsFinished;
+  bool allTracksAreFinished;
+  int32_t lastUsPerTick;
+  MidiPlayerCallbacks_t cb;
 } MIDI_PLAYER;
 
-void midiplayer_init(MIDI_PLAYER* mpl,
-  OnNoteOffCallback_t pOnNoteOffCb,
-  OnNoteOnCallback_t pOnNoteOnCb,
-  OnNoteKeyPressureCallback_t pOnNoteKeyPressureCb,
-  OnSetParameterCallback_t pOnSetParameterCb,
-  OnSetProgramCallback_t pOnSetProgramCb,
-  OnChangePressureCallback_t pOnChangePressureCb,
-  OnSetPitchWheelCallback_t pOnSetPitchWheelCb,
-  OnMetaMIDIPortCallback_t pOnMetaMIDIPortCb,
-  OnMetaSequenceNumberCallback_t pOnMetaSequenceNumberCb,
-  OnMetaTextEventCallback_t pOnMetaTextEventCb,
-  OnMetaCopyrightCallback_t pOnMetaCopyrightCb,
-  OnMetaTrackNameCallback_t pOnMetaTrackNameCb,
-  OnMetaInstrumentCallback_t pOnMetaInstrumentCb,
-  OnMetaLyricCallback_t pOnMetaLyricCb,
-  OnMetaMarkerCallback_t pOnMetaMarkerCb,
-  OnMetaCuePointCallback_t pOnMetaCuePointCb,
-  OnMetaEndSequenceCallback_t pOnMetaEndSequenceCb,
-  OnMetaSetTempoCallback_t pOnMetaSetTempoCb,
-  OnMetaSMPTEOffsetCallback_t pOnMetaSMPTEOffsetCb,
-  OnMetaTimeSigCallback_t pOnMetaTimeSigCb,
-  OnMetaKeySigCallback_t pOnMetaKeySigCb,
-  OnMetaSequencerSpecificCallback_t pOnMetaSequencerSpecificCb,
-  OnMetaSysExCallback_t pOnMetaSysExCb
-);
-
+void midiplayer_init(MIDI_PLAYER* mpl, MidiPlayerCallbacks_t callbacks);
 bool midiPlayerTick(MIDI_PLAYER* pMidiPlayer);
 bool playMidiFile(MIDI_PLAYER* pMidiPlayer, const char *pFilename);
 void adjustTimeFactor(MIDI_PLAYER* pMp);
