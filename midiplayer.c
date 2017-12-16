@@ -227,12 +227,13 @@ bool isItTimeToFireThisEvent(MIDI_PLAYER* pMp, int iTrack) {
     dispatchMidiMsg(pMp, iTrack); // shoot
 
     // Debug 1/2
-    int32_t expectedWaitTime = pMp->pMidiFile->Track[iTrack].debugLastMsgDt * pMp->lastUsPerTick / 1000;
-    int32_t realWaitTime = hal_clock() - pMp->pMidiFile->Track[iTrack].debugLastClock;
-    int32_t diff = realWaitTime - expectedWaitTime;
+    int32_t expectedWaitTimeMs = pMp->pMidiFile->Track[iTrack].debugLastMsgDt * pMp->lastUsPerTick / 1000;
+    int32_t realWaitTimeMs = hal_clock() - pMp->pMidiFile->Track[iTrack].debugLastClock;
+    int32_t jitterMs = realWaitTimeMs - expectedWaitTimeMs;
 
-    if (abs(diff > 10))
-      hal_printfWarning("Expected: %d ms, real: %d ms, diff: %d ms", expectedWaitTime, realWaitTime, diff);
+    if (abs(jitterMs > 10))
+      hal_printfWarning("Expected: %d ms, real: %d ms, jitter: %d ms", expectedWaitTimeMs, realWaitTimeMs,
+          jitterMs);
     // ---
 
     midiReadGetNextMessage(pMp->pMidiFile, iTrack, &pMp->msg[iTrack]); // reload
