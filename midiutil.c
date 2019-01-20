@@ -763,8 +763,8 @@ bool muGetKeySigName(char *pName, tMIDI_KEYSIG iKey) {
   int32_t iFlats   = (iKey & keyMaskNeg);
   int32_t iMin     = (iKey & keyMaskMin);
 
-  strcpy_s(pName, 256, iKeysList[iFlats ? 1 : 0][iRootNum]);
-  strcat_s(pName, 256, iMin ? " Min" : " Maj");
+  strcpy(pName, iKeysList[iFlats ? 1 : 0][iRootNum]);
+  strcat(pName, iMin ? " Min" : " Maj");
   return true;
 }
 
@@ -804,7 +804,7 @@ int8_t muGetNoteFromName(const char *pName) {
   int8_t note = 0;
   char* p, cpy[16];
 
-  strncpy_s(cpy, 256, pName, 15);
+  strncpy(cpy, pName, 15);
   cpy[15] = '\0';
   p = cpy;
 
@@ -972,34 +972,34 @@ char *muGetChordName(char *str, int32_t chord) {
   if (bass < 0 || bass > 11)
     bass = 0;
 
-  strcpy_s(str, 256, szNoteName[root]);
+  strcpy(str, szNoteName[root]);
 
   switch(chord & CHORD_TYPE_MASK) {
     case CHORD_TYPE_MAJOR:
       break;
     case CHORD_TYPE_MINOR:
-      strcat_s(str, 256, "m");
+      strcat(str, "m");
       break;
     case CHORD_TYPE_AUG:
-      strcat_s(str, 256, " aug");
+      strcat(str, " aug");
       break;
     case CHORD_TYPE_DIM:
-      strcat_s(str, 256, " dim");
+      strcat(str, " dim");
       break;
   }
 
   if (chord & CHORD_ADD_7TH)
-    strcat_s(str, 256, "+7");
+    strcat(str, "+7");
 
   if (chord & CHORD_ADD_9TH)
-    strcat_s(str, 256, "+9");
+    strcat(str, "+9");
 
   if (chord & CHORD_ADD_MAJ7TH)
-    strcat_s(str, 256, "+7M");
+    strcat(str, "+7M");
 
   if (bass != root) {
-    strcat_s(str, 256, "/");
-    strcat_s(str, 256, szNoteName[bass]);
+    strcat(str, "/");
+    strcat(str, szNoteName[bass]);
   }
 
   return str;
